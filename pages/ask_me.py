@@ -38,7 +38,7 @@ def retrieve_document_content(url):
         return None
 
 # UI Layout
-st.title("Groq Q&A Chatbot")
+st.title("Q&A Chatbot")
 url = st.text_input("Enter URL of the document to analyze:")
 
 if st.button("Retrieve and Analyze"):
