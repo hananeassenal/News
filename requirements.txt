@@ -4,3 +4,4 @@ newspaper3k
 pymongo
 llama-index
 captcha
+groq
