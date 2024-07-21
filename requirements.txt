@@ -5,8 +5,5 @@ pymongo
 llama-index
 captcha
 groq
-smtplib
-ssl
-email
 lxml
 
