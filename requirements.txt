@@ -1,10 +1,10 @@
-streamlit==1.10.0
-pymongo==3.11.4
-captcha==0.4
-newspaper3k==0.2.8
-lxml==4.9.3
+streamlit
 requests
+newspaper3k
+pymongo
 llama-index
+captcha
 groq
-
+llama_index.llms.groq 
+lxml[html_clean]     
 
