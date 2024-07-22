@@ -98,10 +98,9 @@ def signup():
 # Login function
 def login():
     st.header("Login")
-    email = st.text_input("Email", key="login_email")
-    password = st.text_input("Password", type="password", key="login_password")
+    
+    # CAPTCHA input and verification
     captcha_input = st.text_input("Enter CAPTCHA")
-
     if 'captcha_text' not in st.session_state:
         generate_captcha()
 
@@ -112,6 +111,10 @@ def login():
         else:
             st.error("CAPTCHA verification failed. Please try again.")
             generate_captcha()  # Regenerate CAPTCHA for another attempt
+    
+    # Email and password fields
+    email = st.text_input("Email", key="login_email", disabled=not st.session_state.captcha_valid)
+    password = st.text_input("Password", type="password", key="login_password", disabled=not st.session_state.captcha_valid)
 
     if st.button("Login"):
         if email and password and st.session_state.captcha_valid:
