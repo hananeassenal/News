@@ -10,8 +10,6 @@ def connect_to_mongo():
         client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority&appName=Cluster0")
         db = client.Newsapp
         return db.Usersz
-    except errors.PyMongoError as e:
-        st.error("Error connecting to MongoDB: {}".format(e))
     return None
 
 users_collection = connect_to_mongo()
@@ -42,42 +40,31 @@ def generate_captcha():
 def signup():
     st.header("Sign Up")
     
-    captcha_input = st.text_input("Enter CAPTCHA")
+    # Add country selection to the signup form
+    
+    email = st.text_input("Email", key="signup_email")
+    password = st.text_input("Password", type="password", key="signup_password")
 
-    if 'captcha_text' not in st.session_state:
-        generate_captcha()
-
-    if st.button("Verify CAPTCHA"):
-        if captcha_input == st.session_state.captcha_text:
-            st.success("CAPTCHA verification successful!")
-            st.session_state.captcha_valid = True
+    countries = ["Brazil", "Dubai", "Saudi", "China"]
+    country = st.selectbox("Select Country", countries, key="signup_country")
+    
+    if st.button("Sign Up"):
+        if email and password and country:
+            user = {"email": email, "password": password, "country": country}
+            users_collection.insert_one(user)
+            st.session_state.logged_in = True
+            st.session_state.email = email
+            st.session_state.country = country
+            st.success("Sign-up successful!")
+            st.experimental_rerun()  # Redirect to news page after sign-up
         else:
-            st.error("CAPTCHA verification failed. Please try again.")
-            generate_captcha()  # Regenerate CAPTCHA for another attempt
-
-    if st.session_state.captcha_valid:
-        email = st.text_input("Email", key="signup_email")
-        password = st.text_input("Password", type="password", key="signup_password")
-
-        countries = ["Brazil", "Dubai", "Saudi", "China"]
-        country = st.selectbox("Select Country", countries, key="signup_country")
-
-        if st.button("Sign Up"):
-            if email and password and country:
-                user = {"email": email, "password": password, "country": country}
-                users_collection.insert_one(user)
-                st.session_state.logged_in = True
-                st.session_state.email = email
-                st.session_state.country = country
-                st.success("Sign-up successful!")
-                st.experimental_rerun()  # Redirect to news page after sign-up
-            else:
-                st.error("Please fill out all fields.")
+            st.error("Please fill out all fields.")
 
 # Login function
 def login():
     st.header("Login")
-
+    email = st.text_input("Email", key="login_email")
+    password = st.text_input("Password", type="password", key="login_password")
     captcha_input = st.text_input("Enter CAPTCHA")
 
     if 'captcha_text' not in st.session_state:
@@ -91,23 +78,19 @@ def login():
             st.error("CAPTCHA verification failed. Please try again.")
             generate_captcha()  # Regenerate CAPTCHA for another attempt
 
-    if st.session_state.captcha_valid:
-        email = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_password")
-
-        if st.button("Login"):
-            if email and password:
-                user = users_collection.find_one({"email": email, "password": password})
-                if user:
-                    st.session_state.logged_in = True
-                    st.session_state.email = user["email"]
-                    st.session_state.country = user.get("country", "")  # Store the country info if available
-                    st.success("Login successful!")
-                    st.experimental_rerun()  # Redirect to news page after login
-                else:
-                    st.error("Invalid email or password.")
+    if st.button("Login"):
+        if email and password and st.session_state.captcha_valid:
+            user = users_collection.find_one({"email": email, "password": password})
+            if user:
+                st.session_state.logged_in = True
+                st.session_state.email = user["email"]
+                st.session_state.country = user.get("country", "")  # Store the country info if available
+                st.success("Login successful!")
+                st.experimental_rerun()  # Redirect to news page after login
             else:
-                st.error("Please fill out all fields and pass CAPTCHA verification.")
+                st.error("Invalid email or password.")
+        else:
+            st.error("Please fill out all fields and pass CAPTCHA verification.")
 
 # Main function
 def main():
