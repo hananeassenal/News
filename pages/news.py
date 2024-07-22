@@ -51,7 +51,7 @@ def fetch_articles(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "00e23c419fmsh00ab278c50df146p14a6e5jsn21884add4144",
+        "x-rapidapi-key": "0be6be7928msh54e041ed4264f56p11a2d1jsn6b4820fee452",
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
