@@ -40,7 +40,7 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        return f"For more please visit {url}"
+        return "This article does not have a summary.\n\nFor more please visit {url}"
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
