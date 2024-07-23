@@ -120,6 +120,9 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article, index):
+    # Ensure unique button key by using article URL and index
+    unique_key = f"save_button_{index}_{article['url'].replace('https://', '').replace('/', '_')}"
+    
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
@@ -130,9 +133,7 @@ def display_article(article, index):
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Ensure unique button key by including article URL
-    unique_key = f"save_button_{index}_{article['url']}"
+
     if st.button(f"Save Article: {article['title']}", key=unique_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
