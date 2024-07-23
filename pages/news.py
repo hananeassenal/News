@@ -4,9 +4,6 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
-import hashlib
-import random
-import string
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -38,16 +35,12 @@ def fetch_summary(url):
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
 
-        # Log the response from Groq
-        st.write(f"Summary from Groq for URL {url}: {summary}")
-
         if not summary.strip():  # Check if summary is empty or contains only whitespace
             return "There is no summary for this article."
 
-        return summary.strip()
+        return f"{summary.strip()}\n\nFor more please visit: {url}"
     except Exception as e:
-        st.write(f"Error fetching summary for URL {url}: {e}")
-        return "There is no summary for this article."
+        return f"There is no summary for this article.\n\nFor more please visit: {url}"
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
@@ -98,12 +91,7 @@ def fetch_articles(query):
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
-def generate_key(article_url, article_title):
-    random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-    return hashlib.md5(f"{article_url}{article_title}{random_string}".encode()).hexdigest()
-
 def display_article(article):
-    # Display article information
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
@@ -111,14 +99,11 @@ def display_article(article):
         </a>
         <img src="{article['image_url']}" alt="{article['title']}" style="width:100%; height:auto;">
         <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>{article.get('summary', 'There is no summary for this article.')}</p>
-        <p>For more please visit: <a href="{article['url']}" target="_blank">{article['url']}</a></p>
+        <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Button for saving the article
-    unique_key = generate_key(article['url'], article['title'])
-    if st.button(f"Save Article: {article['title']}", key=unique_key):
+    if st.button(f"Save Article: {article['title']}", key=article['url']):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
