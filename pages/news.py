@@ -6,6 +6,10 @@ from datetime import datetime
 from pymongo import MongoClient, errors
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+import logging
+
+# Setup logging
+logging.basicConfig(filename='app.log', level=logging.ERROR)
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -59,8 +63,11 @@ def fetch_summary(url):
             return f"There is no summary for this article.\n\nFor more please visit {url}"
 
         return f"{summary}\n\nFor more please visit {url}"
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Request error while fetching summary for URL {url}: {e}")
+        return f"There is no summary for this article.\n\nFor more please visit {url}"
     except Exception as e:
-        st.error(f"Error occurred while fetching summary: {e}")
+        logging.error(f"Error occurred while fetching summary for URL {url}: {e}")
         return f"There is no summary for this article.\n\nFor more please visit {url}"
 
 def fetch_articles(query):
