@@ -19,7 +19,7 @@ queries_by_country = {
 }
 
 # Path to fallback image
-FALLBACK_IMAGE_PATH = "ship.jpg"
+FALLBACK_IMAGE_PATH = "fallback_image.jpg"
 
 # Function to check if user is logged in
 def check_login():
@@ -110,7 +110,9 @@ def display_article(article):
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button(f"Save Article: {article['title']}", key=article['url']):
+    # Use a unique key to avoid DuplicateWidgetID error
+    unique_key = f"save_button_{article['url']}"
+    if st.button(f"Save Article: {article['title']}", key=unique_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
