@@ -40,7 +40,11 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        return f"No summary available for this article. For more, please visit {url}"
+        error_message = (
+            "There was an issue processing the article. This might be due to browser settings such as JavaScript or cookies being blocked. "
+            "Please check your browser settings and try again. For more, please visit {url}"
+        )
+        return error_message.format(url=url)
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
