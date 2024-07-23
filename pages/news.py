@@ -38,8 +38,9 @@ def fetch_summary(url):
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
 
-        if not summary.strip():  # Check if summary is empty or contains only whitespace
-            return "There is no summary for this article."
+        # Check if summary is empty or contains only whitespace
+        if not summary or not summary.strip():
+            return "There is no summary for this article.\n\nFor more please visit: {}".format(url)
 
         return f"{summary.strip()}\n\nFor more please visit: {url}"
     except Exception as e:
