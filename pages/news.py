@@ -31,6 +31,9 @@ def fetch_summary(url):
         article.parse()
         text = article.text
 
+        if not text:
+            return "This article does not have a summary.\n\nFor more please visit {url}"
+
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
@@ -89,6 +92,9 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
+    if not article['image_url']:
+        article['image_url'] = "https://via.placeholder.com/150"
+    
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
