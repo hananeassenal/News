@@ -31,19 +31,16 @@ def fetch_summary(url):
         article.parse()
         text = article.text
 
-        if not text.strip():  # Check if the text is empty or consists only of whitespace
-            return "This article does not have a summary.\n\nFor more please visit {url}"
-
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
         
-        if not summary.strip() or summary == "":  # Check if the summary is empty
-            return "This article does not have a summary.\n\nFor more please visit {url}"
+        if not summary or "error" in summary.lower():
+            raise ValueError("Summary generation failed")
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        return "This article does not have a summary.\n\nFor more please visit {url}"
+        return f"This article doesn't have a summary.\n\nFor more please visit {url}"
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
@@ -57,7 +54,7 @@ def fetch_articles(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
+        "x-rapidapi-key": "00e23c419fmsh00ab278c50df146p14a6e5jsn21884add4144",
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
@@ -95,9 +92,6 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
-    if not article['image_url']:
-        article['image_url'] = "https://via.placeholder.com/150"
-    
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
