@@ -38,11 +38,15 @@ def fetch_summary(url):
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
 
+        # Log the response from Groq
+        st.write(f"Summary from Groq for URL {url}: {summary}")
+
         if not summary.strip():  # Check if summary is empty or contains only whitespace
             return "There is no summary for this article."
 
         return summary.strip()
     except Exception as e:
+        st.write(f"Error fetching summary for URL {url}: {e}")
         return "There is no summary for this article."
 
 def fetch_articles(query):
