@@ -131,8 +131,9 @@ def display_article(article, index):
     </div>
     """, unsafe_allow_html=True)
     
-    # Use unique key by including the index
-    if st.button(f"Save Article: {article['title']}", key=f"save_button_{index}"):
+    # Ensure unique button key by including article URL
+    unique_key = f"save_button_{index}_{article['url']}"
+    if st.button(f"Save Article: {article['title']}", key=unique_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
