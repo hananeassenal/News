@@ -5,6 +5,7 @@ from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
 from PIL import Image
+import hashlib
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -19,7 +20,7 @@ queries_by_country = {
 }
 
 # Path to fallback image
-FALLBACK_IMAGE_PATH = "pages/ship.jpg"
+FALLBACK_IMAGE_PATH = "fallback_image.jpg"
 
 # Function to check if user is logged in
 def check_login():
@@ -95,6 +96,10 @@ def fetch_articles(query):
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
+def generate_unique_key(base_string):
+    """Generate a unique key for Streamlit widgets based on a base string."""
+    return hashlib.md5(base_string.encode()).hexdigest()
+
 def display_article(article):
     # Use fallback image if article image is not available
     image_url = article['image_url'] if article['image_url'] else FALLBACK_IMAGE_PATH
@@ -111,7 +116,7 @@ def display_article(article):
     """, unsafe_allow_html=True)
     
     # Use a unique key to avoid DuplicateWidgetID error
-    unique_key = f"save_button_{article['url']}"
+    unique_key = generate_unique_key(article['url'])
     if st.button(f"Save Article: {article['title']}", key=unique_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
