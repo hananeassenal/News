@@ -19,7 +19,7 @@ queries_by_country = {
 }
 
 # Path to fallback image
-FALLBACK_IMAGE_PATH = "fallback_image.jpg"
+FALLBACK_IMAGE_PATH = "pages/ship.jpg"
 
 # Function to check if user is logged in
 def check_login():
