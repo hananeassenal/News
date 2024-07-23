@@ -41,10 +41,6 @@ def fetch_summary(url):
         # Accessing summary from the response
         summary = response.text.strip() if hasattr(response, 'text') else str(response).strip()
 
-        # Debugging output
-        st.write(f"Prompt sent to Groq: {prompt[:500]}...")  # Show part of the prompt for debugging
-        st.write(f"Groq response: {summary[:500]}...")  # Show part of the response for debugging
-
         if not summary:
             return f"There is no summary for this article.\n\nFor more please visit {url}"
 
