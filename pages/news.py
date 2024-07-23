@@ -31,6 +31,9 @@ def fetch_summary(url):
         article.parse()
         text = article.text
 
+        if not text.strip():
+            return "There is no summary for this article.\n\nFor more please visit: {}".format(url)
+        
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
