@@ -116,7 +116,7 @@ def display_article(article):
     """, unsafe_allow_html=True)
     
     # Use a unique key to avoid DuplicateWidgetID error
-    unique_key = generate_unique_key(article['url'])
+    unique_key = f"save_button_{generate_unique_key(article['url'])}"
     if st.button(f"Save Article: {article['title']}", key=unique_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
