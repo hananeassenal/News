@@ -23,6 +23,7 @@ def check_login():
         st.warning("You need to be logged in to view this page.")
         st.write("[Login](login.py)")
         st.stop()
+
 def fetch_summary(url):
     try:
         article = Article(url)
@@ -31,19 +32,21 @@ def fetch_summary(url):
         text = article.text.strip()
 
         if not text:
-            return "There is no summary for this article.\n\nFor more please visit {url}"
+            return f"There is no summary for this article.\n\nFor more please visit {url}"
 
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         response = llm.complete(prompt)
-        summary = response.strip()
+
+        # Accessing summary from the response
+        summary = response.text.strip() if hasattr(response, 'text') else str(response).strip()
 
         # Debugging output
         st.write(f"Prompt sent to Groq: {prompt[:500]}...")  # Show part of the prompt for debugging
         st.write(f"Groq response: {summary[:500]}...")  # Show part of the response for debugging
 
         if not summary:
-            return "There is no summary for this article.\n\nFor more please visit {url}"
+            return f"There is no summary for this article.\n\nFor more please visit {url}"
 
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
