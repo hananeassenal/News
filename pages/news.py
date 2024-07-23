@@ -5,6 +5,8 @@ from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
 import hashlib
+import random
+import string
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -92,8 +94,9 @@ def fetch_articles(query):
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
-def generate_key(article_url):
-    return hashlib.md5(article_url.encode()).hexdigest()
+def generate_key(article_url, article_title):
+    random_string = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    return hashlib.md5(f"{article_url}{article_title}{random_string}".encode()).hexdigest()
 
 def display_article(article):
     # Display article information
@@ -110,7 +113,7 @@ def display_article(article):
     """, unsafe_allow_html=True)
 
     # Button for saving the article
-    unique_key = generate_key(article['url'])
+    unique_key = generate_key(article['url'], article['title'])
     if st.button(f"Save Article: {article['title']}", key=unique_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
