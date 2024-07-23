@@ -99,8 +99,10 @@ def display_article(article):
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    if st.button(f"Save Article: {article['title']}", key=article['url']):
+
+    # Add a unique identifier to the button key to avoid duplication issues
+    button_key = f"save_{article['url'].replace('/', '_').replace(':', '_')}_{datetime.now().timestamp()}"
+    if st.button(f"Save Article: {article['title']}", key=button_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
