@@ -94,7 +94,6 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
-    unique_key = f"save_{uuid.uuid4().hex}_{article['url'].replace('/', '_')}"
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
@@ -102,13 +101,15 @@ def display_article(article):
         </a>
         <img src="{article['image_url']}" alt="{article['title']}" style="width:100%; height:auto;">
         <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>{article['summary']}</p>
+        <p>{article.get('summary', 'There is no summary for this article.')}</p>
+        <p>For more please visit: <a href="{article['url']}" target="_blank">{article['url']}</a></p>
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button(f"Save Article: {article['title']}", key=unique_key):
+    if st.button(f"Save Article: {article['title']}", key=article['url']):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
+
 
 def save_article(article):
     try:
