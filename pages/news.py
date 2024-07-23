@@ -41,7 +41,7 @@ def fetch_summary(url):
         if not summary.strip():  # Check if summary is empty or contains only whitespace
             return "There is no summary for this article."
 
-        return f"{summary}\n\nFor more please visit: {url}"
+        return summary.strip()
     except Exception as e:
         return "There is no summary for this article."
 
