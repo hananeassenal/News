@@ -4,6 +4,7 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
+from PIL import Image
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -16,6 +17,9 @@ queries_by_country = {
     "Saudi": ["Saudi new data centre", "Saudi new data center"],
     "China": ["Shanghai port congestion", "Shanghai port constraint", "Shanghai port delays"]
 }
+
+# Path to fallback image
+FALLBACK_IMAGE_PATH = "ship.jpg"
 
 # Function to check if user is logged in
 def check_login():
@@ -34,13 +38,13 @@ def fetch_summary(url):
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
-
-        if not summary.strip():  # Check if summary is empty or contains only whitespace
-            return "There is no summary for this article."
+        
+        if summary.strip() == "":
+            return "There is no summary for this article.\n\nFor more please visit: " + url
 
         return f"{summary}\n\nFor more please visit: {url}"
     except Exception as e:
-        return "There is no summary for this article."
+        return "There is no summary for this article.\n\nFor more please visit: " + url
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
@@ -70,16 +74,16 @@ def fetch_articles(query):
                 image_url = article.get('top_image', '')
                 date = article.get('date', '')
                 article_url = article.get('url', '')
-
+                
                 articles.append({
                     'title': title,
                     'image_url': image_url,
                     'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
                     'url': article_url
                 })
-
+            
             articles.sort(key=lambda x: x['date'], reverse=True)
-
+            
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
@@ -92,20 +96,20 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
-    # Display article information
+    # Use fallback image if article image is not available
+    image_url = article['image_url'] if article['image_url'] else FALLBACK_IMAGE_PATH
+    
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
-        <img src="{article['image_url']}" alt="{article['title']}" style="width:100%; height:auto;">
+        <img src="{image_url}" alt="{article['title']}" style="width:100%; height:auto;">
         <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>{article.get('summary', 'There is no summary for this article.')}</p>
-        <p>For more please visit: <a href="{article['url']}" target="_blank">{article['url']}</a></p>
+        <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
-
-    # Button for saving the article
+    
     if st.button(f"Save Article: {article['title']}", key=article['url']):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
@@ -132,7 +136,7 @@ def main():
     check_login()  # Ensure the user is logged in
 
     st.header(f"News Articles")
-
+    
     # Ensure country is set from session state
     if 'country' not in st.session_state:
         st.session_state.country = "Brazil"  # Default country if not set
