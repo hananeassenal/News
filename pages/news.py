@@ -32,19 +32,16 @@ def fetch_summary(url):
         text = article.text
 
         if not text.strip():  # Check if the text is empty or contains only whitespace
-            return f"No summary available for this article. For more, please visit {url}"
+            return "There is no summary for this article."
 
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
         
         return f"{summary}\n\nFor more please visit {url}"
-    except Exception as e:
-        error_message = (
-            "There was an issue processing the article. This might be due to browser settings such as JavaScript or cookies being blocked. "
-            "Please check your browser settings and try again. For more, please visit {url}"
-        )
-        return error_message.format(url=url)
+    except Exception:
+        # Return a generic message if any exception occurs
+        return "There is no summary for this article."
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
@@ -106,10 +103,8 @@ def display_article(article):
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
-
-    # Add a unique identifier to the button key to avoid duplication issues
-    button_key = f"save_{article['url'].replace('/', '_').replace(':', '_')}_{datetime.now().timestamp()}"
-    if st.button(f"Save Article: {article['title']}", key=button_key):
+    
+    if st.button(f"Save Article: {article['title']}", key=article['url']):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
