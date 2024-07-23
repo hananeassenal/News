@@ -4,10 +4,24 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 # Groq API Key
 GROQ_API_KEY = "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"
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
+
+# Retry strategy
+retry_strategy = Retry(
+    total=3,
+    status_forcelist=[403, 404, 500, 502, 503, 504],
+    method_whitelist=["GET", "POST"],
+    backoff_factor=1
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+http = requests.Session()
+http.mount("http://", adapter)
+http.mount("https://", adapter)
 
 # Predefined queries by country
 queries_by_country = {
@@ -26,7 +40,7 @@ def check_login():
 
 def fetch_summary(url):
     try:
-        article = Article(url)
+        article = Article(url, browser_user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36')
         article.download()
         article.parse()
         text = article.text.strip()
@@ -66,7 +80,7 @@ def fetch_articles(query):
         "Content-Type": "application/json"
     }
 
-    response = requests.post(url, json=payload, headers=headers)
+    response = http.post(url, json=payload, headers=headers)
 
     if response.status_code == 200:
         json_data = response.json()
