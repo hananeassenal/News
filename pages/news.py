@@ -110,7 +110,6 @@ def display_article(article):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
-
 def save_article(article):
     try:
         client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
