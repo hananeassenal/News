@@ -31,12 +31,15 @@ def fetch_summary(url):
         article.parse()
         text = article.text
 
-        if not text:
+        if not text.strip():  # Check if the text is empty or consists only of whitespace
             return "This article does not have a summary.\n\nFor more please visit {url}"
 
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
+        
+        if not summary.strip():  # Check if the summary is empty
+            return "This article does not have a summary.\n\nFor more please visit {url}"
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
