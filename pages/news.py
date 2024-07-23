@@ -40,7 +40,7 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        return f"This article doesn't have a summary.\n\nFor more please visit {url}"
+        return None
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
@@ -54,7 +54,7 @@ def fetch_articles(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
+        "x-rapidapi-key": "00e23c419fmsh00ab278c50df146p14a6e5jsn21884add4144",
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
@@ -83,7 +83,10 @@ def fetch_articles(query):
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
-                    article['summary'] = summary
+                    if summary:
+                        article['summary'] = summary
+                    else:
+                        article['summary'] = "This article doesn't have a summary.\n\nFor more please visit {article['url']}"
                     display_article(article)
                     st.write("---")
         else:
