@@ -31,13 +31,16 @@ def fetch_summary(url):
         article.parse()
         text = article.text
 
+        if not text.strip():  # Check if the text is empty or contains only whitespace
+            return f"No summary available for this article. For more, please visit {url}"
+
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        return f"For more please visit {url}"
+        return f"No summary available for this article. For more, please visit {url}"
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
