@@ -4,7 +4,6 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
-import uuid  # Import uuid for unique key generation
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -32,16 +31,15 @@ def fetch_summary(url):
         article.parse()
         text = article.text
 
-        if not text.strip():  # Check if the text is empty or contains only whitespace
-            return "There is no summary for this article."
-
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
-        
-        return f"{summary}\n\nFor more please visit {url}"
-    except Exception:
-        # Return a generic message if any exception occurs
+
+        if not summary.strip():  # Check if summary is empty or contains only whitespace
+            return "There is no summary for this article."
+
+        return f"{summary}\n\nFor more please visit: {url}"
+    except Exception as e:
         return "There is no summary for this article."
 
 def fetch_articles(query):
@@ -72,16 +70,16 @@ def fetch_articles(query):
                 image_url = article.get('top_image', '')
                 date = article.get('date', '')
                 article_url = article.get('url', '')
-                
+
                 articles.append({
                     'title': title,
                     'image_url': image_url,
                     'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
                     'url': article_url
                 })
-            
+
             articles.sort(key=lambda x: x['date'], reverse=True)
-            
+
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
@@ -94,6 +92,7 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
+    # Display article information
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
@@ -105,7 +104,8 @@ def display_article(article):
         <p>For more please visit: <a href="{article['url']}" target="_blank">{article['url']}</a></p>
     </div>
     """, unsafe_allow_html=True)
-    
+
+    # Button for saving the article
     if st.button(f"Save Article: {article['title']}", key=article['url']):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
@@ -132,7 +132,7 @@ def main():
     check_login()  # Ensure the user is logged in
 
     st.header(f"News Articles")
-    
+
     # Ensure country is set from session state
     if 'country' not in st.session_state:
         st.session_state.country = "Brazil"  # Default country if not set
