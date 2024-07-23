@@ -14,10 +14,10 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 # Retry strategy
 retry_strategy = Retry(
     total=3,
-    status_forcelist=[403, 404, 500, 502, 503, 504],
-    method_whitelist=["GET", "POST"],
-    backoff_factor=1
+    backoff_factor=1,
+    status_forcelist=[403, 404, 500, 502, 503, 504]
 )
+
 adapter = HTTPAdapter(max_retries=retry_strategy)
 http = requests.Session()
 http.mount("http://", adapter)
@@ -53,7 +53,7 @@ def fetch_summary(url):
         response = llm.complete(prompt)
 
         # Accessing summary from the response
-        summary = response.text.strip() if hasattr(response, 'text') else str(response).strip()
+        summary = response.strip() if isinstance(response, str) else str(response).strip()
 
         if not summary:
             return f"There is no summary for this article.\n\nFor more please visit {url}"
