@@ -47,37 +47,45 @@ def fetch_articles_from_newsnow(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",  # Replace with your actual RapidAPI key
+        "x-rapidapi-key": "YOUR_RAPIDAPI_KEY",  # Replace with your actual RapidAPI key
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
 
-    response = requests.post(url, json=payload, headers=headers)
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        st.write(f"API Response Status Code: {response.status_code}")
+        st.write(f"API Response: {response.text}")
 
-    if response.status_code == 200:
-        json_data = response.json()
-        if 'news' in json_data and json_data['news']:
-            articles = []
-            for article in json_data['news']:
-                title = article.get('title', '')
-                image_url = article.get('top_image', '')
-                date = article.get('date', '')
-                article_url = article.get('url', '')
+        if response.status_code == 200:
+            json_data = response.json()
+            st.write(f"API Response JSON: {json_data}")
+
+            if 'news' in json_data and json_data['news']:
+                articles = []
+                for article in json_data['news']:
+                    title = article.get('title', '')
+                    image_url = article.get('top_image', '')
+                    date = article.get('date', '')
+                    article_url = article.get('url', '')
+                    
+                    articles.append({
+                        'title': title,
+                        'image_url': image_url,
+                        'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                        'url': article_url
+                    })
                 
-                articles.append({
-                    'title': title,
-                    'image_url': image_url,
-                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
-                    'url': article_url
-                })
-            
-            articles.sort(key=lambda x: x['date'], reverse=True)
-            return articles
+                articles.sort(key=lambda x: x['date'], reverse=True)
+                return articles
+            else:
+                st.error("No articles found in API response.")
+                return []
         else:
-            st.error("No articles found.")
+            st.error(f"API request error: {response.status_code} - {response.reason}")
             return []
-    else:
-        st.error(f"API request error: {response.status_code} - {response.reason}")
+    except Exception as e:
+        st.error(f"Exception during API request: {e}")
         return []
 
 def display_article(article):
