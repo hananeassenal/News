@@ -1,5 +1,6 @@
 streamlit
 requests
+beautifulsoup4 
 newspaper3k
 pymongo
 llama-index
@@ -7,5 +8,5 @@ captcha
 groq
 llama_index.llms.groq 
 lxml[html_clean]   
-feedparser
+
 
