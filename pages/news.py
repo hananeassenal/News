@@ -37,7 +37,6 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        st.error(f"Error summarizing article: {e}")
         return f"For more please visit {url}"
 
 def fetch_articles(query):
@@ -61,27 +60,18 @@ def fetch_articles(query):
 
     if response.status_code == 200:
         json_data = response.json()
-        
-        # Debugging output to inspect API response
-        st.write("API Response:", json_data)
-        
         if 'news' in json_data and json_data['news']:
             articles = []
             for article in json_data['news']:
-                title = article.get('title', 'No title')
+                title = article.get('title', '')
                 image_url = article.get('top_image', '')
                 date = article.get('date', '')
                 article_url = article.get('url', '')
-
-                if date:
-                    date = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT')
-                else:
-                    date = datetime.now()
-
+                
                 articles.append({
                     'title': title,
                     'image_url': image_url,
-                    'date': date,
+                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
                     'url': article_url
                 })
             
