@@ -29,6 +29,11 @@ def fetch_summary(url):
         article = Article(url)
         article.download()
         article.parse()
+        
+        if not article.text:
+            st.warning(f"No text found for the article: {url}")
+            return article.title, "No text found for this article.", article.top_image, f"For more please visit {url}"
+        
         text = article.text
         title = article.title
         image_url = article.top_image
@@ -39,6 +44,7 @@ def fetch_summary(url):
         
         return title, text, image_url, f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
+        st.error(f"Error fetching summary: {str(e)}")
         return "", "", "", f"For more please visit {url}"
 
 def fetch_articles(query):
