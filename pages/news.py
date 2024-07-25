@@ -4,12 +4,16 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
+import os
+from concurrent.futures import ThreadPoolExecutor
 
-# Groq API Key
-GROQ_API_KEY = "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"
+# Load sensitive information from environment variables
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "your-default-groq-api-key")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "your-default-rapidapi-key")
+MONGO_URI = os.getenv("MONGO_URI", "your-default-mongo-uri")
+
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
-# Predefined queries by country
 queries_by_country = {
     "Brazil": ["Brazil hydro Drought", "Brazil low hydro", "Sao Paolo Blackouts", "Brazil blackouts"],
     "Dubai": ["Jebel Ali Dubai Port constraints", "Jebel Ali Dubai Port storm", "Jebel Ali Dubai Port flood"],
@@ -17,7 +21,6 @@ queries_by_country = {
     "China": ["Shanghai port congestion", "Shanghai port constraint", "Shanghai port delays"]
 }
 
-# Function to check if user is logged in
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         st.warning("You need to be logged in to view this page.")
@@ -31,7 +34,6 @@ def fetch_summary(url):
         article.parse()
         text = article.text
 
-        # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
         
@@ -39,48 +41,40 @@ def fetch_summary(url):
     except Exception as e:
         return f"For more please visit {url}"
 
-def fetch_articles(query):
-    url = "https://newsnow.p.rapidapi.com/newsv2"
-    payload = {
-        "query": query,
-        "time_bounded": True,
-        "from_date": "01/01/2023",
-        "to_date": "30/12/2024",
-        "location": "us",
-        "language": "en",
-        "page": 1
-    }
+def fetch_articles():
+    url = "https://cnbc.p.rapidapi.com/news/v2/list-trending"
+    querystring = {"tag": "Articles", "count": "30"}
     headers = {
-        "x-rapidapi-key": "93392545eemsha04787c560ca51ep12f14ejsnb23a02f592d7",
-        "x-rapidapi-host": "newsnow.p.rapidapi.com",
-        "Content-Type": "application/json"
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": "cnbc.p.rapidapi.com"
     }
 
-    response = requests.post(url, json=payload, headers=headers)
+    response = requests.get(url, headers=headers, params=querystring)
 
     if response.status_code == 200:
         json_data = response.json()
-        if 'news' in json_data and json_data['news']:
+        if 'data' in json_data and json_data['data']:
             articles = []
-            for article in json_data['news']:
-                title = article.get('title', '')
-                image_url = article.get('top_image', '')
-                date = article.get('date', '')
-                article_url = article.get('url', '')
+            for item in json_data['data']:
+                article_data = item.get('attributes', {})
+                title = article_data.get('headline', '')
+                image_url = article_data.get('promoImage', {}).get('url', '')
+                date = article_data.get('dateLastPublished', '')
+                article_url = article_data.get('canonicalUrl', '')
                 
                 articles.append({
                     'title': title,
                     'image_url': image_url,
-                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                    'date': datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%fZ'),
                     'url': article_url
                 })
             
             articles.sort(key=lambda x: x['date'], reverse=True)
             
-            for article in articles:
-                with st.spinner(f"Processing article: {article['title']}"):
-                    summary = fetch_summary(article['url'])
-                    article['summary'] = summary
+            with ThreadPoolExecutor() as executor:
+                futures = [executor.submit(fetch_summary, article['url']) for article in articles]
+                for article, future in zip(articles, futures):
+                    article['summary'] = future.result()
                     display_article(article)
                     st.write("---")
         else:
@@ -106,7 +100,7 @@ def display_article(article):
 
 def save_article(article):
     try:
-        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
+        client = MongoClient(MONGO_URI)
         db = client.Newsapp
         saved_articles_collection = db.SavedArticles
     except errors.OperationFailure as e:
@@ -123,13 +117,12 @@ def save_article(article):
     )
 
 def main():
-    check_login()  # Ensure the user is logged in
+    check_login()
 
-    st.header(f"News Articles")
+    st.header("News Articles")
     
-    # Ensure country is set from session state
     if 'country' not in st.session_state:
-        st.session_state.country = "Brazil"  # Default country if not set
+        st.session_state.country = "Brazil"
 
     country = st.selectbox("Select Country", ["Brazil", "Dubai", "Saudi", "China"], index=["Brazil", "Dubai", "Saudi", "China"].index(st.session_state.country))
     st.session_state.country = country
@@ -138,11 +131,11 @@ def main():
     query = st.text_input("Enter search query")
 
     if query:
-        fetch_articles(query)
+        fetch_articles()
     else:
         queries = queries_by_country.get(st.session_state.country, [])
         for query in queries:
-            fetch_articles(query)
+            fetch_articles()
 
 if __name__ == "__main__":
     main()
