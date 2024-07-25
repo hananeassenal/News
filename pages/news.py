@@ -37,15 +37,18 @@ def fetch_summary(url):
 
 def scrape_headlines(url):
     try:
-        res = requests.get(url, verify=False, headers={'User-Agent':'Mozilla/5.0'})
+        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
         soup = BeautifulSoup(res.content, 'html.parser')
-        headlines = soup.find_all('h2', class_='post-title-news')
+
+        # Update these selectors based on the specific website structure
+        headlines = soup.find_all('h3', class_='gs-c-promo-heading__title gel-pica-bold nw-o-link-split__text')[:10]
 
         articles = []
         for headline in headlines:
             title = headline.text.strip()
-            link = headline.find('a')['href']
-            articles.append({'title': title, 'url': link, 'date': datetime.now()})
+            link = headline.find_parent('a')['href']
+            full_url = f"https://www.bbc.com{link}"  # Construct full URL
+            articles.append({'title': title, 'url': full_url, 'date': datetime.now()})
         return articles
     except Exception as e:
         st.error(f"Error fetching headlines: {e}")
@@ -150,8 +153,8 @@ def main():
     if query:
         fetch_articles(query)
     else:
-        # Sample URL to scrape headlines from
-        url = "https://news.mongabay.com/list/environment"
+        # Use the updated URL to scrape headlines
+        url = "https://www.bbc.com/news"
         articles = scrape_headlines(url)
         
         if articles:
