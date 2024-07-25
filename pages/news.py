@@ -14,7 +14,7 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
 
 # NewsNow API Key (if needed)
-NEWSNOW_API_KEY = os.getenv("NEWSNOW_API_KEY", "your_newsnow_api_key_here")
+NEWSNOW_API_KEY = os.getenv("NEWSNOW_API_KEY", "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8")
 
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
