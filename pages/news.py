@@ -41,13 +41,15 @@ def fetch_summary(url):
     except Exception as e:
         return f"For more please visit {url}"
 
-def fetch_articles():
+def fetch_articles(query):
     url = "https://cnbc.p.rapidapi.com/news/v2/list-trending"
     querystring = {"tag": "Articles", "count": "30"}
     headers = {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": "cnbc.p.rapidapi.com"
     }
+
+    st.write(f"Fetching articles with query: {query}")
 
     response = requests.get(url, headers=headers, params=querystring)
 
@@ -131,11 +133,11 @@ def main():
     query = st.text_input("Enter search query")
 
     if query:
-        fetch_articles()
+        fetch_articles(query)
     else:
         queries = queries_by_country.get(st.session_state.country, [])
         for query in queries:
-            fetch_articles()
+            fetch_articles(query)
 
 if __name__ == "__main__":
     main()
