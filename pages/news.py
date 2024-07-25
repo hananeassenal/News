@@ -3,134 +3,148 @@ import requests
 from bs4 import BeautifulSoup
 from llama_index.llms.groq import Groq
 from datetime import datetime
+from pymongo import MongoClient, errors
 
 # Groq API Key
 GROQ_API_KEY = "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"
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
-# Google News API Key
-GOOGLE_NEWS_API_KEY = "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8"
+# Predefined queries by country
+queries_by_country = {
+    "Brazil": ["Brazil hydro Drought", "Brazil low hydro", "Sao Paolo Blackouts", "Brazil blackouts"],
+    "Dubai": ["Jebel Ali Dubai Port constraints", "Jebel Ali Dubai Port storm", "Jebel Ali Dubai Port flood"],
+    "Saudi": ["Saudi new data centre", "Saudi new data center"],
+    "China": ["Shanghai port congestion", "Shanghai port constraint", "Shanghai port delays"]
+}
 
-def fetch_article_content(url):
-    """
-    Fetches and extracts article content from the provided URL.
-    
-    Args:
-        url (str): URL of the article to fetch.
-    
-    Returns:
-        str: Extracted article text.
-    """
-    try:
-        r = requests.get(url)
-        r.raise_for_status()  # Check for HTTP errors
-        soup = BeautifulSoup(r.text, 'html.parser')
-        
-        # Extract text from h1 and p tags
-        results = soup.find_all(['h1', 'p'])
-        text = [result.get_text() for result in results]
-        article_text = ' '.join(text)
-        
-        return article_text
-    except requests.RequestException as e:
-        return f"Error fetching content: {str(e)}"
+# Function to check if user is logged in
+def check_login():
+    if 'logged_in' not in st.session_state or not st.session_state.logged_in:
+        st.warning("You need to be logged in to view this page.")
+        st.write("[Login](login.py)")
+        st.stop()
 
-def summarize_content(content):
-    """
-    Summarizes the provided content using the Groq model.
-    
-    Args:
-        content (str): The text content to summarize.
-    
-    Returns:
-        str: Summarized content.
-    """
+def fetch_summary(url):
     try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Extract article text
+        paragraphs = soup.find_all('p')
+        text = "\n".join([para.get_text() for para in paragraphs])
+
         # Use Groq model for summarization
-        prompt = f"Summarize the following text:\n\n{content}"
+        prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
         
-        return summary
+        return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        return f"Error summarizing content: {str(e)}"
+        return f"For more please visit {url}"
 
 def fetch_articles(query):
-    """
-    Fetches articles from Google News API based on the query.
-    
-    Args:
-        query (str): Search query for fetching articles.
-    
-    Returns:
-        list: List of articles with title, URL, and publication date.
-    """
-    url = "https://newsapi.org/v2/everything"
-    params = {
-        "q": query,
-        "apiKey": GOOGLE_NEWS_API_KEY,
+    url = "https://newsnow.p.rapidapi.com/newsv2"
+    payload = {
+        "query": query,
+        "time_bounded": True,
+        "from_date": "01/01/2023",
+        "to_date": "30/12/2024",
+        "location": "us",
         "language": "en",
-        "sortBy": "publishedAt",
-        "pageSize": 5  # Limit the number of articles
+        "page": 1
+    }
+    headers = {
+        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
+        "x-rapidapi-host": "newsnow.p.rapidapi.com",
+        "Content-Type": "application/json"
     }
 
-    response = requests.get(url, params=params)
+    response = requests.post(url, json=payload, headers=headers)
 
     if response.status_code == 200:
         json_data = response.json()
-        if 'articles' in json_data and json_data['articles']:
+        if 'news' in json_data and json_data['news']:
             articles = []
-            for article in json_data['articles']:
+            for article in json_data['news']:
                 title = article.get('title', '')
-                url = article.get('url', '')
-                date = article.get('publishedAt', '')
-
+                image_url = article.get('top_image', '')
+                date = article.get('date', '')
+                article_url = article.get('url', '')
+                
                 articles.append({
                     'title': title,
-                    'url': url,
-                    'date': datetime.strptime(date, '%Y-%m-%dT%H:%M:%S%z')
+                    'image_url': image_url,
+                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                    'url': article_url
                 })
             
-            return articles
+            articles.sort(key=lambda x: x['date'], reverse=True)
+            
+            for article in articles:
+                with st.spinner(f"Processing article: {article['title']}"):
+                    summary = fetch_summary(article['url'])
+                    article['summary'] = summary
+                    display_article(article)
+                    st.write("---")
         else:
             st.error("No articles found.")
-            return []
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
-        return []
 
 def display_article(article):
-    """
-    Displays an article with its title, publication date, and summary.
-    
-    Args:
-        article (dict): Article details including title, URL, and date.
-    """
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
+        <img src="{article['image_url']}" alt="{article['title']}" style="width:100%; height:auto;">
         <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    if st.button(f"Save Article: {article['title']}", key=article['url']):
+        save_article(article)
+        st.success(f"Article saved: {article['title']}")
+
+def save_article(article):
+    try:
+        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
+        db = client.Newsapp
+        saved_articles_collection = db.SavedArticles
+    except errors.OperationFailure as e:
+        st.error(f"Authentication failed: {e.details['errmsg']}")
+        return
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return
+
+    saved_articles_collection.update_one(
+        {"url": article['url']},
+        {"$set": article},
+        upsert=True
+    )
 
 def main():
-    st.title("News Articles with Summaries")
+    check_login()  # Ensure the user is logged in
 
+    st.header(f"News Articles")
+    
+    # Ensure country is set from session state
+    if 'country' not in st.session_state:
+        st.session_state.country = "Brazil"  # Default country if not set
+
+    country = st.selectbox("Select Country", ["Brazil", "Dubai", "Saudi", "China"], index=["Brazil", "Dubai", "Saudi", "China"].index(st.session_state.country))
+    st.session_state.country = country
+
+    st.subheader("Search News")
     query = st.text_input("Enter search query")
 
     if query:
-        articles = fetch_articles(query)
-        if articles:
-            for article in articles:
-                with st.spinner(f"Processing article: {article['title']}"):
-                    article_content = fetch_article_content(article['url'])
-                    if article_content:
-                        summary = summarize_content(article_content)
-                        article['summary'] = summary
-                        display_article(article)
-                        st.write("---")
+        fetch_articles(query)
+    else:
+        queries = queries_by_country.get(st.session_state.country, [])
+        for query in queries:
+            fetch_articles(query)
 
 if __name__ == "__main__":
     main()
