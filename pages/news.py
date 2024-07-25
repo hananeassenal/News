@@ -1,4 +1,5 @@
 import streamlit as st
+import feedparser
 import requests
 from newspaper import Article
 from llama_index.llms.groq import Groq
@@ -26,6 +27,20 @@ def check_login():
 
 def fetch_summary(url):
     try:
+        if "rss" in url:
+            # Handle RSS feed URL
+            feed = feedparser.parse(url)
+            if feed.entries:
+                entry = feed.entries[0]
+                title = entry.title
+                summary = entry.summary
+                image_url = entry.media_thumbnail[0]['url'] if 'media_thumbnail' in entry else ''
+                return title, summary, image_url, f"Summary: {summary}\n\nFor more please visit {url}"
+            else:
+                st.warning(f"No entries found in RSS feed: {url}")
+                return "", "", "", f"For more please visit {url}"
+        
+        # Handle regular articles
         article = Article(url)
         article.download()
         article.parse()
@@ -46,7 +61,6 @@ def fetch_summary(url):
     except Exception as e:
         st.error(f"Error fetching summary: {str(e)}")
         return "", "", "", f"For more please visit {url}"
-
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
     payload = {
