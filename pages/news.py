@@ -55,6 +55,7 @@ def fetch_articles(query):
 
     if response.status_code == 200:
         json_data = response.json()
+        st.write(f"API Response: {json_data}")  # Debugging statement
         if 'data' in json_data and json_data['data']:
             articles = []
             for item in json_data['data']:
@@ -141,4 +142,3 @@ def main():
 
 if __name__ == "__main__":
     main()
- 
