@@ -6,5 +6,6 @@ llama-index
 captcha
 groq
 llama_index.llms.groq 
-lxml[html_clean]     
+lxml[html_clean]   
+feedparser
 
