@@ -10,7 +10,7 @@ GROQ_API_KEY = "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"
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Predefined queries by country
-queries_by_country = { 
+queries_by_country = {
     "Brazil": ["Brazil hydro Drought", "Brazil low hydro", "Sao Paolo Blackouts", "Brazil blackouts"],
     "Dubai": ["Jebel Ali Dubai Port constraints", "Jebel Ali Dubai Port storm", "Jebel Ali Dubai Port flood"],
     "Saudi": ["Saudi new data centre", "Saudi new data center"],
@@ -61,6 +61,10 @@ def fetch_articles(query):
 
     if response.status_code == 200:
         json_data = response.json()
+        
+        # Debugging output to inspect API response
+        st.write("API Response:", json_data)
+        
         if 'news' in json_data and json_data['news']:
             articles = []
             for article in json_data['news']:
