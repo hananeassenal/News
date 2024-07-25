@@ -37,6 +37,7 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
+        st.error(f"Error fetching summary: {e}")
         return f"For more please visit {url}"
 
 def fetch_articles(query):
@@ -63,15 +64,26 @@ def fetch_articles(query):
         if 'news' in json_data and json_data['news']:
             articles = []
             for article in json_data['news']:
-                title = article.get('title', '')
-                image_url = article.get('top_image', '')
+                title = article.get('title', 'No title')
+                image_url = article.get('top_image', 'https://via.placeholder.com/150')
                 date = article.get('date', '')
                 article_url = article.get('url', '')
+
+                # Debug print statements
+                st.write(f"Title: {title}")
+                st.write(f"Image URL: {image_url}")
+                st.write(f"Date: {date}")
+                st.write(f"Article URL: {article_url}")
+
+                if date:
+                    date = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT')
+                else:
+                    date = datetime.now()  # Use current date if date is missing
                 
                 articles.append({
                     'title': title,
                     'image_url': image_url,
-                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                    'date': date,
                     'url': article_url
                 })
             
