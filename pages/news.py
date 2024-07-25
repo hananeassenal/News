@@ -1,3 +1,4 @@
+import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 from llama_index.llms.groq import Groq
@@ -25,41 +26,22 @@ def check_login():
 
 def fetch_summary(url):
     try:
-        if "rss" in url:
-            # Handle RSS feed URL
-            feed = feedparser.parse(url)
-            if feed.entries:
-                entry = feed.entries[0]
-                title = entry.title
-                summary = entry.summary
-                image_url = entry.media_thumbnail[0]['url'] if 'media_thumbnail' in entry else ''
-                return title, summary, image_url, f"Summary: {summary}\n\nFor more please visit {url}"
-            else:
-                st.warning(f"No entries found in RSS feed: {url}")
-                return "", "", "", f"For more please visit {url}"
-
-        # Handle regular articles using BeautifulSoup
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        r = requests.get(url)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        
+        # Extract text from h1 and p tags
         results = soup.find_all(['h1', 'p'])
         text = [result.get_text() for result in results]
         article_text = ' '.join(text)
-        
-        if not article_text:
-            st.warning(f"No text found for the article: {url}")
-            return "", "", "", f"For more please visit {url}"
-        
-        title = soup.title.string if soup.title else 'No Title'
-        image_url = soup.find('meta', {'property': 'og:image'})['content'] if soup.find('meta', {'property': 'og:image'}) else ''
         
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{article_text}"
         summary = llm.complete(prompt)
         
-        return title, article_text, image_url, f"{summary}\n\nFor more please visit {url}"
+        return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
         st.error(f"Error fetching summary: {str(e)}")
-        return "", "", "", f"For more please visit {url}"
+        return f"For more please visit {url}"
 
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
@@ -101,10 +83,7 @@ def fetch_articles(query):
             
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
-                    title, text, image_url, summary = fetch_summary(article['url'])
-                    article['title'] = title
-                    article['text'] = text
-                    article['image_url'] = image_url
+                    summary = fetch_summary(article['url'])
                     article['summary'] = summary
                     display_article(article)
                     st.write("---")
