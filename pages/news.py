@@ -9,7 +9,7 @@ GROQ_API_KEY = "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"
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Google News API Key
-GOOGLE_NEWS_API_KEY = "YOUR_GOOGLE_NEWS_API_KEY"
+GOOGLE_NEWS_API_KEY = "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8"
 
 def fetch_article_content(url):
     """
