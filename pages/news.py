@@ -4,6 +4,8 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
+from bs4 import BeautifulSoup
+import re
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -37,7 +39,6 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        st.error(f"Error fetching summary: {e}")
         return f"For more please visit {url}"
 
 def fetch_articles(query):
@@ -69,6 +70,10 @@ def fetch_articles(query):
                 date = article.get('date', '')
                 article_url = article.get('url', '')
 
+                # If URL is a Google News RSS link, extract direct article URL if possible
+                if "news.google.com/rss/articles/" in article_url:
+                    article_url = extract_direct_article_url(article_url)
+
                 # Debug print statements
                 st.write(f"Title: {title}")
                 st.write(f"Image URL: {image_url}")
@@ -99,6 +104,20 @@ def fetch_articles(query):
             st.error("No articles found.")
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
+
+def extract_direct_article_url(rss_url):
+    try:
+        # Extract the article ID or use a different approach if possible
+        response = requests.get(rss_url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'xml')
+            item = soup.find('item')
+            if item:
+                link = item.find('link').text
+                return link
+    except Exception as e:
+        st.error(f"Error extracting direct article URL: {e}")
+    return rss_url  # Return the original URL if extraction fails
 
 def display_article(article):
     st.markdown(f"""
