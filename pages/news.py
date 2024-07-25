@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from bs4 import BeautifulSoup
+from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
@@ -26,30 +26,17 @@ def check_login():
 
 def fetch_summary(url):
     try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an error for bad responses
-        soup = BeautifulSoup(response.content, 'html.parser')
-
-        # Extract article text
-        paragraphs = soup.find_all('p')
-        text = "\n".join([para.get_text() for para in paragraphs])
-
-        if not text:
-            return f"Summary not available for {url}"
+        article = Article(url)
+        article.download()
+        article.parse()
+        text = article.text
 
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
-        response = llm.complete(prompt)
-
-        # Check response status
-        if response.status_code == 200:
-            summary = response.json().get('completion', 'Summary not available')
-        else:
-            summary = f"Summary request failed with status code {response.status_code}"
-
+        summary = llm.complete(prompt)
+        
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        st.error(f"Error fetching summary: {e}")
         return f"For more please visit {url}"
 
 def fetch_articles(query):
@@ -64,7 +51,7 @@ def fetch_articles(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
+        "x-rapidapi-key": "03ad35810cmsh07357444c92e591p1fbd17jsnbc1e1a3a1363",
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
