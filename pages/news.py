@@ -51,7 +51,7 @@ def fetch_articles(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "03ad35810cmsh07357444c92e591p1fbd17jsnbc1e1a3a1363",
+        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
@@ -106,7 +106,7 @@ def display_article(article):
 
 def save_article(article):
     try:
-        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
+        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
         db = client.Newsapp
         saved_articles_collection = db.SavedArticles
     except errors.OperationFailure as e:
