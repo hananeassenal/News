@@ -14,6 +14,9 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 # MongoDB credentials from environment variables
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
 
+# NewsNow API Key
+NEWSNOW_API_KEY = os.getenv("NEWSNOW_API_KEY", "your_newsnow_api_key_here")
+
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         st.warning("You need to be logged in to view this page.")
@@ -35,23 +38,49 @@ def fetch_summary(url):
     except Exception as e:
         return f"For more please visit {url}"
 
-def scrape_headlines(url):
-    try:
-        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        soup = BeautifulSoup(res.content, 'html.parser')
+def fetch_articles_from_newsnow(query):
+    url = "https://newsnow.p.rapidapi.com/newsv2"
+    payload = {
+        "query": query,
+        "time_bounded": True,
+        "from_date": "01/01/2023",
+        "to_date": "30/12/2024",
+        "location": "us",
+        "language": "en",
+        "page": 1
+    }
+    headers = {
+        "x-rapidapi-key": 3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8,
+        "x-rapidapi-host": "newsnow.p.rapidapi.com",
+        "Content-Type": "application/json"
+    }
 
-        # Update these selectors based on the specific website structure
-        headlines = soup.find_all('h3', class_='gs-c-promo-heading__title gel-pica-bold nw-o-link-split__text')[:10]
+    response = requests.post(url, json=payload, headers=headers)
 
-        articles = []
-        for headline in headlines:
-            title = headline.text.strip()
-            link = headline.find_parent('a')['href']
-            full_url = f"https://www.bbc.com{link}"  # Construct full URL
-            articles.append({'title': title, 'url': full_url, 'date': datetime.now()})
-        return articles
-    except Exception as e:
-        st.error(f"Error fetching headlines: {e}")
+    if response.status_code == 200:
+        json_data = response.json()
+        if 'news' in json_data and json_data['news']:
+            articles = []
+            for article in json_data['news']:
+                title = article.get('title', '')
+                image_url = article.get('top_image', '')
+                date = article.get('date', '')
+                article_url = article.get('url', '')
+                
+                articles.append({
+                    'title': title,
+                    'image_url': image_url,
+                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                    'url': article_url
+                })
+            
+            articles.sort(key=lambda x: x['date'], reverse=True)
+            return articles
+        else:
+            st.error("No articles found.")
+            return []
+    else:
+        st.error(f"API request error: {response.status_code} - {response.reason}")
         return []
 
 def display_article(article):
@@ -88,53 +117,17 @@ def save_article(article):
     )
 
 def fetch_articles(query):
-    url = "https://newsnow.p.rapidapi.com/newsv2"
-    payload = {
-        "query": query,
-        "time_bounded": True,
-        "from_date": "01/01/2023",
-        "to_date": "30/12/2024",
-        "location": "us",
-        "language": "en",
-        "page": 1
-    }
-    headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
-        "x-rapidapi-host": "newsnow.p.rapidapi.com",
-        "Content-Type": "application/json"
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-
-    if response.status_code == 200:
-        json_data = response.json()
-        if 'news' in json_data and json_data['news']:
-            articles = []
-            for article in json_data['news']:
-                title = article.get('title', '')
-                image_url = article.get('top_image', '')
-                date = article.get('date', '')
-                article_url = article.get('url', '')
-                
-                articles.append({
-                    'title': title,
-                    'image_url': image_url,
-                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
-                    'url': article_url
-                })
-            
-            articles.sort(key=lambda x: x['date'], reverse=True)
-            
-            for article in articles:
-                with st.spinner(f"Processing article: {article['title']}"):
-                    summary = fetch_summary(article['url'])
-                    article['summary'] = summary
-                    display_article(article)
-                    st.write("---")
-        else:
-            st.error("No articles found.")
+    articles = fetch_articles_from_newsnow(query)
+    
+    if articles:
+        for article in articles:
+            with st.spinner(f"Processing article: {article['title']}"):
+                summary = fetch_summary(article['url'])
+                article['summary'] = summary
+                display_article(article)
+                st.write("---")
     else:
-        st.error(f"API request error: {response.status_code} - {response.reason}")
+        st.error("No articles found.")
 
 def main():
     check_login()  # Ensure the user is logged in
@@ -153,19 +146,7 @@ def main():
     if query:
         fetch_articles(query)
     else:
-        # Use the updated URL to scrape headlines
-        url = "https://www.bbc.com/news"
-        articles = scrape_headlines(url)
-        
-        if articles:
-            for article in articles:
-                with st.spinner(f"Processing article: {article['title']}"):
-                    summary = fetch_summary(article['url'])
-                    article['summary'] = summary
-                    display_article(article)
-                    st.write("---")
-        else:
-            st.error("No articles found.")
+        st.error("Please enter a search query.")
 
 if __name__ == "__main__":
     main()
