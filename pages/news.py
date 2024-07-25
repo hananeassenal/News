@@ -1,5 +1,5 @@
 import streamlit as st
-from requests_html import HTMLSession
+import requests
 from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
@@ -12,9 +12,6 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # MongoDB credentials from environment variables
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
-
-# NewsNow API Key (if needed)
-NEWSNOW_API_KEY = os.getenv("NEWSNOW_API_KEY", "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8")
 
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
@@ -38,31 +35,50 @@ def fetch_summary(url):
         st.error(f"Error fetching summary: {e}")
         return f"For more please visit {url}"
 
-def fetch_articles_from_google_news():
-    session = HTMLSession()
-    url = 'https://news.google.com/topstories?hl=en-GB&gl=GB&ceid=GB:en'
-    r = session.get(url)
-    r.html.render(sleep=1, scrolldown=5)
+def fetch_articles_from_newsnow(query):
+    url = "https://newsnow.p.rapidapi.com/newsv2"
+    payload = {
+        "query": query,
+        "time_bounded": True,
+        "from_date": "01/01/2023",
+        "to_date": "30/12/2024",
+        "location": "us",
+        "language": "en",
+        "page": 1
+    }
+    headers = {
+        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",  # Replace with your actual RapidAPI key
+        "x-rapidapi-host": "newsnow.p.rapidapi.com",
+        "Content-Type": "application/json"
+    }
 
-    articles = r.html.find('article')
-    newslist = []
+    response = requests.post(url, json=payload, headers=headers)
 
-    for item in articles:
-        try:
-            newsitem = item.find('h3', first=True)
-            title = newsitem.text
-            link = list(newsitem.absolute_links)[0]  # Convert set to list and get the first link
-            newsarticle = {
-                'title': title,
-                'url': link,
-                'date': datetime.now()  # Use current date, or extract date if available
-            }
-            newslist.append(newsarticle)
-        except Exception as e:
-            st.error(f"Error processing article: {e}")
-            continue
-
-    return newslist
+    if response.status_code == 200:
+        json_data = response.json()
+        if 'news' in json_data and json_data['news']:
+            articles = []
+            for article in json_data['news']:
+                title = article.get('title', '')
+                image_url = article.get('top_image', '')
+                date = article.get('date', '')
+                article_url = article.get('url', '')
+                
+                articles.append({
+                    'title': title,
+                    'image_url': image_url,
+                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                    'url': article_url
+                })
+            
+            articles.sort(key=lambda x: x['date'], reverse=True)
+            return articles
+        else:
+            st.error("No articles found.")
+            return []
+    else:
+        st.error(f"API request error: {response.status_code} - {response.reason}")
+        return []
 
 def display_article(article):
     st.markdown(f"""
@@ -71,7 +87,7 @@ def display_article(article):
             <h3>{article['title']}</h3>
         </a>
         <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>{article.get('summary', 'Summary not available')}</p>
+        <p>{article.get('description', 'Description not available')}</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -102,18 +118,23 @@ def main():
 
     st.header("News Articles")
 
-    st.subheader("Fetching News from Google")
-    articles = fetch_articles_from_google_news()
-    
-    if articles:
-        for article in articles:
-            with st.spinner(f"Processing article: {article['title']}"):
-                summary = fetch_summary(article['url'])
-                article['summary'] = summary
-                display_article(article)
-                st.write("---")
+    st.subheader("Search News")
+    query = st.text_input("Enter search query")
+
+    if query:
+        articles = fetch_articles_from_newsnow(query)
+        
+        if articles:
+            for article in articles:
+                with st.spinner(f"Processing article: {article['title']}"):
+                    summary = fetch_summary(article['url'])
+                    article['description'] = summary
+                    display_article(article)
+                    st.write("---")
+        else:
+            st.error("No articles found.")
     else:
-        st.error("No articles found.")
+        st.warning("Please enter a search query.")
 
 if __name__ == "__main__":
     main()
