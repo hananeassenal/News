@@ -45,7 +45,7 @@ def fetch_articles():
     url = "https://cnbc.p.rapidapi.com/news/v2/list-trending"
     querystring = {"tag": "Articles", "count": "30"}
     headers = {
-        "x-rapidapi-key": 3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8,
+        "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": "cnbc.p.rapidapi.com"
     }
 
@@ -73,16 +73,16 @@ def fetch_articles():
             
             with ThreadPoolExecutor() as executor:
                 futures = [executor.submit(fetch_summary, article['url']) for article in articles]
-                for article, future in zip(articles, futures):
+                for index, (article, future) in enumerate(zip(articles, futures)):
                     article['summary'] = future.result()
-                    display_article(article)
+                    display_article(article, index)
                     st.write("---")
         else:
             st.error("No articles found.")
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
-def display_article(article):
+def display_article(article, index):
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
@@ -94,7 +94,7 @@ def display_article(article):
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button(f"Save Article: {article['title']}", key=article['url']):
+    if st.button(f"Save Article: {article['title']}", key=f"{article['url']}-{index}"):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
