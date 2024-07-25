@@ -1,11 +1,8 @@
-import streamlit as st
-from bs4 import BeautifulSoup
 import requests
-from newspaper import Article
+from bs4 import BeautifulSoup
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
-import feedparser
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -40,36 +37,26 @@ def fetch_summary(url):
             else:
                 st.warning(f"No entries found in RSS feed: {url}")
                 return "", "", "", f"For more please visit {url}"
+
+        # Handle regular articles using BeautifulSoup
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        results = soup.find_all(['h1', 'p'])
+        text = [result.get_text() for result in results]
+        article_text = ' '.join(text)
         
-        # Handle regular articles
-        article = Article(url)
-        article.download()
-        article.parse()
-
-        if not article.text:
+        if not article_text:
             st.warning(f"No text found for the article: {url}")
-            # Attempt to fetch article content directly if newspaper fails
-            try:
-                response = requests.get(url)
-                soup = BeautifulSoup(response.text, 'html.parser')
-                # Example to extract content - modify based on actual HTML structure
-                title = soup.title.string if soup.title else 'No Title'
-                summary = soup.get_text()[:500]  # Get the first 500 characters as a fallback summary
-                image_url = soup.find('meta', {'property': 'og:image'})['content'] if soup.find('meta', {'property': 'og:image'}) else ''
-                return title, summary, image_url, f"Summary: {summary}\n\nFor more please visit {url}"
-            except Exception as e:
-                st.warning(f"Error fetching article content: {str(e)}")
-                return "", "", "", f"For more please visit {url}"
-
-        text = article.text
-        title = article.title
-        image_url = article.top_image
-
+            return "", "", "", f"For more please visit {url}"
+        
+        title = soup.title.string if soup.title else 'No Title'
+        image_url = soup.find('meta', {'property': 'og:image'})['content'] if soup.find('meta', {'property': 'og:image'}) else ''
+        
         # Use Groq model for summarization
-        prompt = f"Summarize the following text:\n\n{text}"
+        prompt = f"Summarize the following text:\n\n{article_text}"
         summary = llm.complete(prompt)
         
-        return title, text, image_url, f"{summary}\n\nFor more please visit {url}"
+        return title, article_text, image_url, f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
         st.error(f"Error fetching summary: {str(e)}")
         return "", "", "", f"For more please visit {url}"
