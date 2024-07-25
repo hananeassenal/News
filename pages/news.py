@@ -8,9 +8,9 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 # Load sensitive information from environment variables
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "your-default-groq-api-key")
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "your-default-rapidapi-key")
-MONGO_URI = os.getenv("MONGO_URI", "your-default-mongo-uri")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
 
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
@@ -45,7 +45,7 @@ def fetch_articles():
     url = "https://cnbc.p.rapidapi.com/news/v2/list-trending"
     querystring = {"tag": "Articles", "count": "30"}
     headers = {
-        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-key": 3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8,
         "x-rapidapi-host": "cnbc.p.rapidapi.com"
     }
 
