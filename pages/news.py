@@ -4,7 +4,6 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
-from bs4 import BeautifulSoup
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -27,7 +26,6 @@ def check_login():
 
 def fetch_summary(url):
     try:
-        # Fetch article content
         article = Article(url)
         article.download()
         article.parse()
@@ -39,7 +37,6 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        st.error(f"Error fetching or summarizing article: {e}")
         return f"For more please visit {url}"
 
 def fetch_articles(query):
@@ -54,7 +51,7 @@ def fetch_articles(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
+        "x-rapidapi-key": "93392545eemsha04787c560ca51ep12f14ejsnb23a02f592d7",
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
@@ -66,30 +63,15 @@ def fetch_articles(query):
         if 'news' in json_data and json_data['news']:
             articles = []
             for article in json_data['news']:
-                title = article.get('title', 'No title')
-                image_url = article.get('top_image', 'https://via.placeholder.com/150')
+                title = article.get('title', '')
+                image_url = article.get('top_image', '')
                 date = article.get('date', '')
                 article_url = article.get('url', '')
-
-                # If URL is a Google News RSS link, extract direct article URL if possible
-                if "news.google.com/rss/articles/" in article_url:
-                    article_url = extract_direct_article_url(article_url)
-
-                # Debug print statements
-                st.write(f"Title: {title}")
-                st.write(f"Image URL: {image_url}")
-                st.write(f"Date: {date}")
-                st.write(f"Article URL: {article_url}")
-
-                if date:
-                    date = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT')
-                else:
-                    date = datetime.now()  # Use current date if date is missing
                 
                 articles.append({
                     'title': title,
                     'image_url': image_url,
-                    'date': date,
+                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
                     'url': article_url
                 })
             
@@ -105,19 +87,6 @@ def fetch_articles(query):
             st.error("No articles found.")
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
-
-def extract_direct_article_url(rss_url):
-    try:
-        response = requests.get(rss_url)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'xml')
-            item = soup.find('item')
-            if item:
-                link = item.find('link').text
-                return link
-    except Exception as e:
-        st.error(f"Error extracting direct article URL: {e}")
-    return rss_url  # Return the original URL if extraction fails
 
 def display_article(article):
     st.markdown(f"""
@@ -137,7 +106,7 @@ def display_article(article):
 
 def save_article(article):
     try:
-        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
         db = client.Newsapp
         saved_articles_collection = db.SavedArticles
     except errors.OperationFailure as e:
