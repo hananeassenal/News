@@ -1,5 +1,5 @@
 import streamlit as st
-import feedparser
+from bs4 import BeautifulSoup
 import requests
 from newspaper import Article
 from llama_index.llms.groq import Groq
@@ -44,11 +44,22 @@ def fetch_summary(url):
         article = Article(url)
         article.download()
         article.parse()
-        
+
         if not article.text:
             st.warning(f"No text found for the article: {url}")
-            return article.title, "No text found for this article.", article.top_image, f"For more please visit {url}"
-        
+            # Attempt to fetch article content directly if newspaper fails
+            try:
+                response = requests.get(url)
+                soup = BeautifulSoup(response.text, 'html.parser')
+                # Example to extract content - modify based on actual HTML structure
+                title = soup.title.string if soup.title else 'No Title'
+                summary = soup.get_text()[:500]  # Get the first 500 characters as a fallback summary
+                image_url = soup.find('meta', {'property': 'og:image'})['content'] if soup.find('meta', {'property': 'og:image'}) else ''
+                return title, summary, image_url, f"Summary: {summary}\n\nFor more please visit {url}"
+            except Exception as e:
+                st.warning(f"Error fetching article content: {str(e)}")
+                return "", "", "", f"For more please visit {url}"
+
         text = article.text
         title = article.title
         image_url = article.top_image
