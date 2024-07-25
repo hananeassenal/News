@@ -5,6 +5,7 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
+import feedparser
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -72,6 +73,7 @@ def fetch_summary(url):
     except Exception as e:
         st.error(f"Error fetching summary: {str(e)}")
         return "", "", "", f"For more please visit {url}"
+
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
     payload = {
