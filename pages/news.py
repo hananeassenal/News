@@ -47,7 +47,7 @@ def fetch_articles_from_newsnow(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "YOUR_RAPIDAPI_KEY",  # Replace with your actual RapidAPI key
+        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",  # Replace with your actual RapidAPI key
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
