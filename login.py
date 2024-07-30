@@ -87,8 +87,7 @@ def signup():
                 st.session_state.logged_in = True
                 st.session_state.email = email
                 st.session_state.country = country
-                st.success("Sign-up successful!")
-                st.session_state.page = 'home'
+                st.session_state.page = 'home'  # Directly go to home page
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -119,8 +118,7 @@ def login():
                         st.session_state.logged_in = True
                         st.session_state.email = user["email"]
                         st.session_state.country = user.get("country", "")  # Store the country info if available
-                        st.success("Login successful!")
-                        st.session_state.page = 'home'
+                        st.session_state.page = 'home'  # Directly go to home page
                     else:
                         st.error("Invalid email or password.")
                 else:
@@ -146,19 +144,18 @@ def main():
 
     if st.session_state.page == 'home':
         home()
-        return
-
-    if st.session_state.logged_in:
-        st.session_state.page = 'home'
     else:
-        if st.session_state.show_signup:
-            signup()
-            if st.button("Go to Login"):
-                st.session_state.show_signup = False
+        if st.session_state.logged_in:
+            st.session_state.page = 'home'
         else:
-            login()
-            if st.button("Go to Sign Up"):
-                st.session_state.show_signup = True
+            if st.session_state.show_signup:
+                signup()
+                if st.button("Go to Login"):
+                    st.session_state.show_signup = False
+            else:
+                login()
+                if st.button("Go to Sign Up"):
+                    st.session_state.show_signup = True
 
 if __name__ == "__main__":
     main()
