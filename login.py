@@ -97,22 +97,30 @@ def signup():
 def login():
     st.header("Login")
 
-    # Display CAPTCHA input field
+    # Display CAPTCHA input field and image
     captcha_input = st.text_input("Enter CAPTCHA", key="captcha_input")
-
-    # Generate and display CAPTCHA image
     captcha_image = generate_captcha_image()
     st.image(captcha_image, caption='CAPTCHA Image')
-    
+
     # Login and CAPTCHA Verification Button
-    login_button = st.button("Login", key="login_button")
+    login_button = st.button("Login")
 
     if login_button:
         # Verify CAPTCHA
         if captcha_input == st.session_state.captcha_text:
             st.session_state.captcha_valid = True
             st.success("CAPTCHA verified successfully!")
-            # Proceed with login if CAPTCHA is valid
+        else:
+            st.session_state.captcha_valid = False
+            st.error("CAPTCHA verification failed. Please try again.")
+            # Regenerate CAPTCHA
+            st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
+            captcha_image = generate_captcha_image()  # Regenerate image
+            st.image(captcha_image, caption='CAPTCHA Image')  # Display new image
+            return  # Exit the function if CAPTCHA verification fails
+
+        # Proceed with login if CAPTCHA is valid
+        if st.session_state.captcha_valid:
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type="password", key="login_password")
 
@@ -130,13 +138,6 @@ def login():
                     st.error("Failed to connect to the database.")
             else:
                 st.error("Please fill out all fields.")
-        else:
-            st.session_state.captcha_valid = False
-            st.error("CAPTCHA verification failed. Please try again.")
-            # Regenerate CAPTCHA
-            st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
-            captcha_image = generate_captcha_image()  # Regenerate image
-            st.image(captcha_image, caption='CAPTCHA Image')  # Display new image
 
 # Home function
 def home():
