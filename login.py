@@ -99,9 +99,10 @@ def signup():
 def login():
     st.header("Login")
     
+    # Display CAPTCHA first
     if 'captcha_text' not in st.session_state:
         generate_captcha()
-    
+
     captcha_input = st.text_input("Enter CAPTCHA")
     
     if st.button("Verify CAPTCHA"):
@@ -112,7 +113,8 @@ def login():
             st.error("CAPTCHA verification failed. Please try again.")
             generate_captcha()  # Regenerate CAPTCHA for another attempt
 
-    if st.session_state.captcha_valid:
+    if st.session_state.captcha_valid or st.session_state.captcha_valid is None:
+        # Show email and password fields
         email = st.text_input("Email", key="login_email")
         password = st.text_input("Password", type="password", key="login_password")
 
