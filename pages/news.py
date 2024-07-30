@@ -4,15 +4,20 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
-import os
 
-# Groq API Key from environment variable
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
+# Groq API Key
+GROQ_API_KEY = "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"
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
-# MongoDB credentials from environment variables
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
+# Predefined queries by country
+queries_by_country = {
+    "Brazil": ["Brazil hydro Drought", "Brazil low hydro", "Sao Paolo Blackouts", "Brazil blackouts"],
+    "Dubai": ["Jebel Ali Dubai Port constraints", "Jebel Ali Dubai Port storm", "Jebel Ali Dubai Port flood"],
+    "Saudi": ["Saudi new data centre", "Saudi new data center"],
+    "China": ["Shanghai port congestion", "Shanghai port constraint", "Shanghai port delays"]
+}
 
+# Function to check if user is logged in
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         st.warning("You need to be logged in to view this page.")
@@ -32,10 +37,9 @@ def fetch_summary(url):
         
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        st.error(f"Error fetching summary: {e}")
         return f"For more please visit {url}"
 
-def fetch_articles_from_newsnow(query):
+def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
     payload = {
         "query": query,
@@ -47,46 +51,42 @@ def fetch_articles_from_newsnow(query):
         "page": 1
     }
     headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",  # Replace with your actual RapidAPI key
+        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
         "x-rapidapi-host": "newsnow.p.rapidapi.com",
         "Content-Type": "application/json"
     }
 
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        st.write(f"API Response Status Code: {response.status_code}")
-        st.write(f"API Response: {response.text}")
+    response = requests.post(url, json=payload, headers=headers)
 
-        if response.status_code == 200:
-            json_data = response.json()
-            st.write(f"API Response JSON: {json_data}")
-
-            if 'news' in json_data and json_data['news']:
-                articles = []
-                for article in json_data['news']:
-                    title = article.get('title', '')
-                    image_url = article.get('top_image', '')
-                    date = article.get('date', '')
-                    article_url = article.get('url', '')
-                    
-                    articles.append({
-                        'title': title,
-                        'image_url': image_url,
-                        'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
-                        'url': article_url
-                    })
+    if response.status_code == 200:
+        json_data = response.json()
+        if 'news' in json_data and json_data['news']:
+            articles = []
+            for article in json_data['news']:
+                title = article.get('title', '')
+                image_url = article.get('top_image', '')
+                date = article.get('date', '')
+                article_url = article.get('url', '')
                 
-                articles.sort(key=lambda x: x['date'], reverse=True)
-                return articles
-            else:
-                st.error("No articles found in API response.")
-                return []
+                articles.append({
+                    'title': title,
+                    'image_url': image_url,
+                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                    'url': article_url
+                })
+            
+            articles.sort(key=lambda x: x['date'], reverse=True)
+            
+            for article in articles:
+                with st.spinner(f"Processing article: {article['title']}"):
+                    summary = fetch_summary(article['url'])
+                    article['summary'] = summary
+                    display_article(article)
+                    st.write("---")
         else:
-            st.error(f"API request error: {response.status_code} - {response.reason}")
-            return []
-    except Exception as e:
-        st.error(f"Exception during API request: {e}")
-        return []
+            st.error("No articles found.")
+    else:
+        st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
     st.markdown(f"""
@@ -94,8 +94,9 @@ def display_article(article):
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
+        <img src="{article['image_url']}" alt="{article['title']}" style="width:100%; height:auto;">
         <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>{article.get('description', 'Description not available')}</p>
+        <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -105,7 +106,7 @@ def display_article(article):
 
 def save_article(article):
     try:
-        client = MongoClient(MONGO_URI)
+        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
         db = client.Newsapp
         saved_articles_collection = db.SavedArticles
     except errors.OperationFailure as e:
@@ -124,25 +125,24 @@ def save_article(article):
 def main():
     check_login()  # Ensure the user is logged in
 
-    st.header("News Articles")
+    st.header(f"News Articles")
+    
+    # Ensure country is set from session state
+    if 'country' not in st.session_state:
+        st.session_state.country = "Brazil"  # Default country if not set
+
+    country = st.selectbox("Select Country", ["Brazil", "Dubai", "Saudi", "China"], index=["Brazil", "Dubai", "Saudi", "China"].index(st.session_state.country))
+    st.session_state.country = country
 
     st.subheader("Search News")
     query = st.text_input("Enter search query")
 
     if query:
-        articles = fetch_articles_from_newsnow(query)
-        
-        if articles:
-            for article in articles:
-                with st.spinner(f"Processing article: {article['title']}"):
-                    summary = fetch_summary(article['url'])
-                    article['description'] = summary
-                    display_article(article)
-                    st.write("---")
-        else:
-            st.error("No articles found.")
+        fetch_articles(query)
     else:
-        st.warning("Please enter a search query.")
+        queries = queries_by_country.get(st.session_state.country, [])
+        for query in queries:
+            fetch_articles(query)
 
 if __name__ == "__main__":
     main()
