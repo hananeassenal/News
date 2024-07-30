@@ -38,11 +38,11 @@ def init_session_state():
         st.session_state.captcha_valid = False
     if 'page' not in st.session_state:
         st.session_state.page = 'login'  # Default to login page
-    if 'captcha_text' not in st.session_state:
-        st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
 
 # Function to generate and display CAPTCHA
 def generate_captcha():
+    if 'captcha_text' not in st.session_state:
+        st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
     image = ImageCaptcha(width=WIDTH, height=HEIGHT)
     data = image.generate(st.session_state.captcha_text)
     st.image(data, caption='CAPTCHA Image')
@@ -89,6 +89,7 @@ def signup():
                 st.session_state.country = country
                 st.success("Sign-up successful!")
                 st.session_state.page = 'home'
+                st.experimental_rerun()
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -97,26 +98,27 @@ def signup():
 # Login function
 def login():
     st.header("Login")
-
+    
+    # CAPTCHA verification
     if not st.session_state.captcha_valid:
-        generate_captcha()
         captcha_input = st.text_input("Enter CAPTCHA")
-
+        if 'captcha_text' not in st.session_state:
+            generate_captcha()
         if st.button("Verify CAPTCHA"):
             if captcha_input == st.session_state.captcha_text:
                 st.success("CAPTCHA verification successful!")
                 st.session_state.captcha_valid = True
-                st.experimental_rerun()  # Force rerun to show login form
+                st.experimental_rerun()  # Refresh to show email and password fields
             else:
                 st.error("CAPTCHA verification failed. Please try again.")
-                st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
                 generate_captcha()  # Regenerate CAPTCHA for another attempt
     else:
+        # Email and password fields
         email = st.text_input("Email", key="login_email")
         password = st.text_input("Password", type="password", key="login_password")
-       
+        
         if st.button("Login"):
-            if email and password:
+            if email and password and st.session_state.captcha_valid:
                 if users_collection is not None:
                     user = users_collection.find_one({"email": email, "password": password})
                     if user:
@@ -125,6 +127,7 @@ def login():
                         st.session_state.country = user.get("country", "")  # Store the country info if available
                         st.success("Login successful!")
                         st.session_state.page = 'home'
+                        st.experimental_rerun()
                     else:
                         st.error("Invalid email or password.")
                 else:
@@ -146,14 +149,23 @@ def main():
 
     if st.session_state.page == 'home':
         home()
-    elif st.session_state.show_signup:
-        signup()
-        if st.button("Go to Login"):
-            st.session_state.show_signup = False
+        return
+
+    if st.session_state.logged_in:
+        st.session_state.page = 'home'
+        st.experimental_rerun()
+        return
     else:
-        login()
-        if st.button("Go to Sign Up"):
-            st.session_state.show_signup = True
+        if st.session_state.show_signup:
+            signup()
+            if st.button("Go to Login"):
+                st.session_state.show_signup = False
+                st.experimental_rerun()
+        else:
+            login()
+            if st.button("Go to Sign Up"):
+                st.session_state.show_signup = True
+                st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
