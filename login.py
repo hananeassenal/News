@@ -2,6 +2,7 @@ import streamlit as st
 from captcha.image import ImageCaptcha
 import random
 import string
+import io
 from pymongo import MongoClient, errors
 import smtplib, ssl
 from email.mime.text import MIMEText
@@ -43,9 +44,12 @@ def init_session_state():
 def generate_captcha():
     if 'captcha_text' not in st.session_state:
         st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
+    
     image = ImageCaptcha(width=WIDTH, height=HEIGHT)
-    data = image.generate(st.session_state.captcha_text)
-    st.image(data, caption='CAPTCHA Image')
+    captcha_image = io.BytesIO()
+    image.write(st.session_state.captcha_text, captcha_image)
+    captcha_image.seek(0)
+    st.image(captcha_image, caption='CAPTCHA Image')
 
 # Function to send sign-up email notification
 def send_signup_email(user_email):
