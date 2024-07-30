@@ -99,26 +99,18 @@ def signup():
 def login():
     st.header("Login")
     
-    # Display CAPTCHA first
+    # Display CAPTCHA
     if 'captcha_text' not in st.session_state:
         generate_captcha()
-
-    captcha_input = st.text_input("Enter CAPTCHA")
     
-    if st.button("Verify CAPTCHA"):
+    captcha_input = st.text_input("Enter CAPTCHA")
+    email = st.text_input("Email", key="login_email")
+    password = st.text_input("Password", type="password", key="login_password")
+
+    if st.button("Login"):
+        # Verify CAPTCHA and login
         if captcha_input == st.session_state.captcha_text:
-            st.success("CAPTCHA verification successful!")
             st.session_state.captcha_valid = True
-        else:
-            st.error("CAPTCHA verification failed. Please try again.")
-            generate_captcha()  # Regenerate CAPTCHA for another attempt
-
-    if st.session_state.captcha_valid or st.session_state.captcha_valid is None:
-        # Show email and password fields
-        email = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_password")
-
-        if st.button("Login"):
             if email and password:
                 if users_collection is not None:
                     user = users_collection.find_one({"email": email, "password": password})
@@ -135,6 +127,9 @@ def login():
                     st.error("Failed to connect to the database.")
             else:
                 st.error("Please fill out all fields.")
+        else:
+            st.error("CAPTCHA verification failed. Please try again.")
+            generate_captcha()  # Regenerate CAPTCHA for another attempt
 
 # Home function
 def home():
