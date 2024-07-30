@@ -98,13 +98,12 @@ def signup():
 # Login function
 def login():
     st.header("Login")
-    email = st.text_input("Email", key="login_email")
-    password = st.text_input("Password", type="password", key="login_password")
-    captcha_input = st.text_input("Enter CAPTCHA")
-
+    
     if 'captcha_text' not in st.session_state:
         generate_captcha()
-
+    
+    captcha_input = st.text_input("Enter CAPTCHA")
+    
     if st.button("Verify CAPTCHA"):
         if captcha_input == st.session_state.captcha_text:
             st.success("CAPTCHA verification successful!")
@@ -113,23 +112,27 @@ def login():
             st.error("CAPTCHA verification failed. Please try again.")
             generate_captcha()  # Regenerate CAPTCHA for another attempt
 
-    if st.button("Login"):
-        if email and password and st.session_state.captcha_valid:
-            if users_collection is not None:
-                user = users_collection.find_one({"email": email, "password": password})
-                if user:
-                    st.session_state.logged_in = True
-                    st.session_state.email = user["email"]
-                    st.session_state.country = user.get("country", "")  # Store the country info if available
-                    st.success("Login successful!")
-                    st.session_state.page = 'home'
-                    st.experimental_rerun()
+    if st.session_state.captcha_valid:
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Password", type="password", key="login_password")
+
+        if st.button("Login"):
+            if email and password:
+                if users_collection is not None:
+                    user = users_collection.find_one({"email": email, "password": password})
+                    if user:
+                        st.session_state.logged_in = True
+                        st.session_state.email = user["email"]
+                        st.session_state.country = user.get("country", "")  # Store the country info if available
+                        st.success("Login successful!")
+                        st.session_state.page = 'home'
+                        st.experimental_rerun()
+                    else:
+                        st.error("Invalid email or password.")
                 else:
-                    st.error("Invalid email or password.")
+                    st.error("Failed to connect to the database.")
             else:
-                st.error("Failed to connect to the database.")
-        else:
-            st.error("Please fill out all fields and pass CAPTCHA verification.")
+                st.error("Please fill out all fields.")
 
 # Home function
 def home():
