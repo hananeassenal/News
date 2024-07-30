@@ -97,16 +97,17 @@ def signup():
 def login():
     st.header("Login")
 
-    # Display CAPTCHA input field and image
+    # Display CAPTCHA input field
     captcha_input = st.text_input("Enter CAPTCHA", key="captcha_input")
+    
+    # Generate and display CAPTCHA image
     captcha_image = generate_captcha_image()
     st.image(captcha_image, caption='CAPTCHA Image')
+    
+    # CAPTCHA Verification Button
+    verify_captcha_button = st.button("Verify CAPTCHA", key="verify_captcha_button")
 
-    # Login and CAPTCHA Verification Button
-    login_button = st.button("Login")
-
-    if login_button:
-        # Verify CAPTCHA
+    if verify_captcha_button:
         if captcha_input == st.session_state.captcha_text:
             st.session_state.captcha_valid = True
             st.success("CAPTCHA verified successfully!")
@@ -117,27 +118,25 @@ def login():
             st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
             captcha_image = generate_captcha_image()  # Regenerate image
             st.image(captcha_image, caption='CAPTCHA Image')  # Display new image
-            return  # Exit the function if CAPTCHA verification fails
 
-        # Proceed with login if CAPTCHA is valid
-        if st.session_state.captcha_valid:
-            email = st.text_input("Email", key="login_email")
-            password = st.text_input("Password", type="password", key="login_password")
+    email = st.text_input("Email", key="login_email")
+    password = st.text_input("Password", type="password", key="login_password")
 
-            if email and password:
-                if users_collection is not None:
-                    user = users_collection.find_one({"email": email, "password": password})
-                    if user:
-                        st.session_state.logged_in = True
-                        st.session_state.email = user["email"]
-                        st.session_state.country = user.get("country", "")  # Store the country info if available
-                        st.session_state.page = 'home'  # Redirect to home page
-                    else:
-                        st.error("Invalid email or password.")
+    if st.button("Login"):
+        if st.session_state.captcha_valid and email and password:
+            if users_collection is not None:
+                user = users_collection.find_one({"email": email, "password": password})
+                if user:
+                    st.session_state.logged_in = True
+                    st.session_state.email = user["email"]
+                    st.session_state.country = user.get("country", "")  # Store the country info if available
+                    st.session_state.page = 'home'  # Redirect to home page
                 else:
-                    st.error("Failed to connect to the database.")
+                    st.error("Invalid email or password.")
             else:
-                st.error("Please fill out all fields.")
+                st.error("Failed to connect to the database.")
+        else:
+            st.error("Please fill out all fields and verify CAPTCHA.")
 
 # Home function
 def home():
