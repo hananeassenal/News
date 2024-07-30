@@ -89,7 +89,6 @@ def signup():
                 st.session_state.country = country
                 st.success("Sign-up successful!")
                 st.session_state.page = 'home'
-                st.experimental_rerun()
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -100,18 +99,18 @@ def login():
     st.header("Login")
 
     if not st.session_state.captcha_valid:
+        generate_captcha()
         captcha_input = st.text_input("Enter CAPTCHA")
 
         if st.button("Verify CAPTCHA"):
             if captcha_input == st.session_state.captcha_text:
                 st.success("CAPTCHA verification successful!")
                 st.session_state.captcha_valid = True
+                st.experimental_rerun()  # Force rerun to show login form
             else:
                 st.error("CAPTCHA verification failed. Please try again.")
                 st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
                 generate_captcha()  # Regenerate CAPTCHA for another attempt
-
-        generate_captcha()
     else:
         email = st.text_input("Email", key="login_email")
         password = st.text_input("Password", type="password", key="login_password")
