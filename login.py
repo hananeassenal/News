@@ -122,7 +122,9 @@ def login():
     email = st.text_input("Email", key="login_email")
     password = st.text_input("Password", type="password", key="login_password")
 
-    if st.button("Login"):
+    login_button = st.button("Login")
+
+    if login_button:
         if st.session_state.captcha_valid and email and password:
             if users_collection is not None:
                 user = users_collection.find_one({"email": email, "password": password})
