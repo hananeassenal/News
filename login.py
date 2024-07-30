@@ -38,11 +38,11 @@ def init_session_state():
         st.session_state.captcha_valid = False
     if 'page' not in st.session_state:
         st.session_state.page = 'login'  # Default to login page
+    if 'captcha_text' not in st.session_state:
+        st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
 
 # Function to generate and display CAPTCHA
 def generate_captcha():
-    if 'captcha_text' not in st.session_state:
-        st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
     image = ImageCaptcha(width=WIDTH, height=HEIGHT)
     data = image.generate(st.session_state.captcha_text)
     st.image(data, caption='CAPTCHA Image')
@@ -101,7 +101,7 @@ def login():
     
     # CAPTCHA input and verification
     captcha_input = st.text_input("Enter CAPTCHA")
-    if 'captcha_text' not in st.session_state:
+    if not st.session_state.captcha_valid:
         generate_captcha()
 
     if st.button("Verify CAPTCHA"):
@@ -110,6 +110,7 @@ def login():
             st.session_state.captcha_valid = True
         else:
             st.error("CAPTCHA verification failed. Please try again.")
+            st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
             generate_captcha()  # Regenerate CAPTCHA for another attempt
     
     # Email and password fields
@@ -148,23 +149,21 @@ def main():
 
     if st.session_state.page == 'home':
         home()
-        return
-
-    if st.session_state.logged_in:
-        st.session_state.page = 'home'
-        st.experimental_rerun()
-        return
     else:
-        if st.session_state.show_signup:
-            signup()
-            if st.button("Go to Login"):
-                st.session_state.show_signup = False
-                st.experimental_rerun()
+        if st.session_state.logged_in:
+            st.session_state.page = 'home'
+            st.experimental_rerun()
         else:
-            login()
-            if st.button("Go to Sign Up"):
-                st.session_state.show_signup = True
-                st.experimental_rerun()
+            if st.session_state.show_signup:
+                signup()
+                if st.button("Go to Login"):
+                    st.session_state.show_signup = False
+                    st.experimental_rerun()
+            else:
+                login()
+                if st.button("Go to Sign Up"):
+                    st.session_state.show_signup = True
+                    st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
