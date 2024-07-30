@@ -45,7 +45,7 @@ def generate_captcha():
         st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
     image = ImageCaptcha(width=WIDTH, height=HEIGHT)
     data = image.generate(st.session_state.captcha_text)
-    st.image(data, caption='CAPTCHA Image')
+    return data
 
 # Function to send sign-up email notification
 def send_signup_email(user_email):
@@ -99,11 +99,16 @@ def signup():
 def login():
     st.header("Login")
     
-    # Display CAPTCHA
+    # Display CAPTCHA input field
+    captcha_input = st.text_input("Enter CAPTCHA")
+    
+    # Generate and display CAPTCHA image if not already generated
     if 'captcha_text' not in st.session_state:
         generate_captcha()
+
+    captcha_image = generate_captcha()
+    st.image(captcha_image, caption='CAPTCHA Image')
     
-    captcha_input = st.text_input("Enter CAPTCHA")
     email = st.text_input("Email", key="login_email")
     password = st.text_input("Password", type="password", key="login_password")
 
@@ -129,7 +134,10 @@ def login():
                 st.error("Please fill out all fields.")
         else:
             st.error("CAPTCHA verification failed. Please try again.")
-            generate_captcha()  # Regenerate CAPTCHA for another attempt
+            # Regenerate CAPTCHA for another attempt
+            st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
+            captcha_image = generate_captcha()
+            st.image(captcha_image, caption='CAPTCHA Image')
 
 # Home function
 def home():
