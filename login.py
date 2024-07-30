@@ -49,7 +49,9 @@ def generate_captcha():
     captcha_image = io.BytesIO()
     image.write(st.session_state.captcha_text, captcha_image)
     captcha_image.seek(0)
-    st.image(captcha_image, caption='CAPTCHA Image')
+    
+    # Display CAPTCHA image
+    st.image(captcha_image.read(), caption='CAPTCHA Image')
 
 # Function to send sign-up email notification
 def send_signup_email(user_email):
