@@ -14,7 +14,7 @@ queries_by_country = {
     "Brazil": ["Brazil hydro Drought", "Brazil low hydro", "Sao Paolo Blackouts", "Brazil blackouts"],
     "Dubai": ["Jebel Ali Dubai Port constraints", "Jebel Ali Dubai Port storm", "Jebel Ali Dubai Port flood"],
     "Saudi": ["Saudi new data centre", "Saudi new data center"],
-    "China": ["Shanghai port congestion", "Shanghai port constraint", "Shanghai port delays"]
+    "Shanghai": ["Shanghai port congestion", "Shanghai port constraint", "Shanghai port delays"]
 }
 
 # Function to check if user is logged in
@@ -131,7 +131,7 @@ def main():
     if 'country' not in st.session_state:
         st.session_state.country = "Brazil"  # Default country if not set
 
-    country = st.selectbox("Select Country", ["Brazil", "Dubai", "Saudi", "China"], index=["Brazil", "Dubai", "Saudi", "China"].index(st.session_state.country))
+    country = st.selectbox("Select Country", ["Brazil", "Dubai", "Saudi", "Shanghai"], index=["Brazil", "Dubai", "Saudi", "Shanghai"].index(st.session_state.country))
     st.session_state.country = country
 
     st.subheader("Search News")
