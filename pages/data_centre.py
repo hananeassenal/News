@@ -4,6 +4,13 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
+def data_centre():
+    st.title("Data Centre")
+    st.write("This is the data centre page.")
+    # Add your page-specific content here
+
+if __name__ == "__main__":
+    data_centre()
 
 # Groq API Key
 GROQ_API_KEY = "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"
