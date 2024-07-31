@@ -2,12 +2,8 @@
 
 import streamlit as st
 import requests
-from llama_index.llms.groq import Groq
+from newspaper import Article
 from datetime import datetime
-
-# Groq API Key
-GROQ_API_KEY = "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"
-llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Function to fetch articles
 def fetch_articles(query):
@@ -55,21 +51,16 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
         return []
 
-# Function to summarize articles
-def fetch_summary(url):
+# Function to extract article content using newspaper3k
+def extract_article_content(article_url):
     try:
-        article = Article(url)
+        article = Article(article_url)
         article.download()
         article.parse()
-        text = article.text
-
-        # Use Groq model for summarization
-        prompt = f"Summarize the following text:\n\n{text}"
-        summary = llm.complete(prompt)
-        
-        return f"{summary}\n\nFor more please visit {url}"
+        return article.text
     except Exception as e:
-        return f"For more please visit {url}"
+        st.error(f"Error extracting article content: {e}")
+        return ""
 
 # Function to display an article
 def display_article(article):
@@ -80,13 +71,14 @@ def display_article(article):
         </a>
         <img src="{article['image_url']}" alt="{article['title']}" style="width:100%; height:auto;">
         <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button(f"Save Article: {article['title']}", key=article['url']):
-        save_article(article)
-        st.success(f"Article saved: {article['title']}")
+    # Automatically extract and display the article content
+    content = extract_article_content(article['url'])
+    if content:
+        st.write("Content:")
+        st.write(content)  # Display the full article content
 
 # Function to handle the data centre page
 def data_centre():
@@ -94,17 +86,15 @@ def data_centre():
     
     country = st.selectbox("Select Country", ["France", "UK", "Germany", "Ireland"], index=0)
     
-    st.subheader("Search News")
+    st.subheader(f"Articles for {country}")
+    
+    # Automatically fetch articles for the selected country
     query = f"{country} data centre"
-
-    if st.button("Fetch Articles"):
-        articles = fetch_articles(query)
-        for article in articles:
-            st.write(f"Processing article: {article['title']}")
-            summary = fetch_summary(article['url'])
-            article['summary'] = summary
-            display_article(article)
-            st.write("---")
+    articles = fetch_articles(query)
+    
+    for article in articles:
+        display_article(article)
+        st.write("---")
 
 if __name__ == "__main__":
     data_centre()
