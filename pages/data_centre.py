@@ -3,13 +3,43 @@ import requests
 from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
-from requests.exceptions import RequestException
+from pymongo import MongoClient, errors
 
 # Groq API Key
 GROQ_API_KEY = "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"
 llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
-# Function to fetch articles
+# Predefined queries by country
+queries_by_country = {
+    "Brazil": ["Brazil hydro Drought", "Brazil low hydro", "Sao Paolo Blackouts", "Brazil blackouts"],
+    "Dubai": ["Jebel Ali Dubai Port constraints", "Jebel Ali Dubai Port storm", "Jebel Ali Dubai Port flood"],
+    "Saudi": ["Saudi new data centre", "Saudi new data center"],
+    "Shanghai": ["Shanghai port congestion", "Shanghai port constraint", "Shanghai port delays"]
+}
+
+# Function to check if user is logged in
+def check_login():
+    if 'logged_in' not in st.session_state or not st.session_state.logged_in:
+        st.warning("You need to be logged in to view this page.")
+        st.write("[Login](login.py)")
+        st.stop()
+
+def fetch_summary(url):
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        text = article.text
+
+        # Use Groq model for summarization
+        prompt = f"Summarize the following text:\n\n{text}"
+        summary = llm.complete(prompt).strip()
+        
+        return f"{summary}\n\nFor more please visit {url}"
+    except Exception as e:
+        st.error(f"Error summarizing article: {e}")
+        return f"For more please visit {url}"
+
 def fetch_articles(query):
     url = "https://newsnow.p.rapidapi.com/newsv2"
     payload = {
@@ -47,35 +77,18 @@ def fetch_articles(query):
                 })
             
             articles.sort(key=lambda x: x['date'], reverse=True)
-            return articles
+            
+            for article in articles:
+                with st.spinner(f"Processing article: {article['title']}"):
+                    summary = fetch_summary(article['url'])
+                    article['summary'] = summary
+                    display_article(article)
+                    st.write("---")
         else:
             st.error("No articles found.")
-            return []
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
-        return []
 
-# Function to summarize articles
-def fetch_summary(url):
-    try:
-        article = Article(url, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-        article.download()
-        article.parse()
-        text = article.text
-
-        # Use Groq model for summarization
-        prompt = f"Summarize the following text:\n\n{text}"
-        summary = llm.complete(prompt).strip()
-        
-        return f"{summary}\n\nFor more please visit {url}"
-    except RequestException as e:
-        st.error(f"Network error while summarizing article: {e}")
-        return f"For more please visit {url}"
-    except Exception as e:
-        st.error(f"Error summarizing article: {e}")
-        return f"For more please visit {url}"
-
-# Function to display an article
 def display_article(article):
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
@@ -92,24 +105,45 @@ def display_article(article):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
-# Function to handle the data centre page
-def data_centre():
-    st.title("European Data Centre")
+def save_article(article):
+    try:
+        client = MongoClient("mongodb+srv://hananeassendal:RebelDehanane@cluster0.6bgmgnf.mongodb.net/Newsapp?retryWrites=true&w=majority")
+        db = client.Newsapp
+        saved_articles_collection = db.SavedArticles
+    except errors.OperationFailure as e:
+        st.error(f"Authentication failed: {e.details['errmsg']}")
+        return
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        return
+
+    saved_articles_collection.update_one(
+        {"url": article['url']},
+        {"$set": article},
+        upsert=True
+    )
+
+def main():
+    check_login()  # Ensure the user is logged in
+
+    st.header(f"News Articles")
     
-    country = st.selectbox("Select Country", ["France", "UK", "Germany", "Ireland"], index=0)
-    
-    st.subheader("Fetching Articles Automatically")
-    
-    # Generate query based on selected country
-    query = f"{country} data centre"
-    
-    articles = fetch_articles(query)
-    for article in articles:
-        st.write(f"Processing article: {article['title']}")
-        summary = fetch_summary(article['url'])
-        article['summary'] = summary
-        display_article(article)
-        st.write("---")
+    # Ensure country is set from session state
+    if 'country' not in st.session_state:
+        st.session_state.country = "Brazil"  # Default country if not set
+
+    country = st.selectbox("Select Country", ["Brazil", "Dubai", "Saudi", "Shanghai"], index=["Brazil", "Dubai", "Saudi", "Shanghai"].index(st.session_state.country))
+    st.session_state.country = country
+
+    st.subheader("Search News")
+    query = st.text_input("Enter search query")
+
+    if query:
+        fetch_articles(query)
+    else:
+        queries = queries_by_country.get(st.session_state.country, [])
+        for query in queries:
+            fetch_articles(query)
 
 if __name__ == "__main__":
-    data_centre()
+    main()
