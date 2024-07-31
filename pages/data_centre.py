@@ -57,7 +57,7 @@ def fetch_articles(query):
 # Function to summarize articles
 def fetch_summary(url):
     try:
-        article = Article(url)
+        article = Article(url, browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         article.download()
         article.parse()
         text = article.text
@@ -67,6 +67,9 @@ def fetch_summary(url):
         summary = llm.complete(prompt).strip()
         
         return f"{summary}\n\nFor more please visit {url}"
+    except NewspaperNetworkException as e:
+        st.error(f"Network error summarizing article: {e}")
+        return f"For more please visit {url}"
     except Exception as e:
         st.error(f"Error summarizing article: {e}")
         return f"For more please visit {url}"
