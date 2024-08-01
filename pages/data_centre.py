@@ -14,7 +14,9 @@ queries_by_country = {
     "France": ["France new data centre"],
     "UK": ["UK new data centre"],
     "Germany": ["Germany new data centre"],
-    "Ireland": ["Ireland new data centre"]
+    "Ireland": ["Ireland new data centre"],
+    "USA": ["USA new data centre"],
+    "Brazil": ["Brazil new data centre"]
 }
 
 # Function to check if user is logged in
@@ -131,7 +133,7 @@ def main():
     if 'country' not in st.session_state:
         st.session_state.country = "France"  # Default country if not set
 
-    country_options = ["France", "UK", "Germany", "Ireland"]
+    country_options = ["France", "UK", "Germany", "Ireland", "USA", "Brazil"]
     try:
         country_index = country_options.index(st.session_state.country)
     except ValueError:
