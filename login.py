@@ -1,7 +1,4 @@
 import streamlit as st
-from captcha.image import ImageCaptcha
-import random
-import string
 from pymongo import MongoClient, errors
 import smtplib, ssl
 from email.mime.text import MIMEText
@@ -23,29 +20,14 @@ def connect_to_mongo():
 
 users_collection = connect_to_mongo()
 
-# Define constants for CAPTCHA
-LENGTH_CAPTCHA = 4
-WIDTH = 200
-HEIGHT = 100
-
 # Function to initialize session state
 def init_session_state():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     if 'show_signup' not in st.session_state:
         st.session_state.show_signup = False
-    if 'captcha_valid' not in st.session_state:
-        st.session_state.captcha_valid = False
-    if 'captcha_text' not in st.session_state:
-        st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
     if 'page' not in st.session_state:
         st.session_state.page = 'login'  # Default to login page
-
-# Function to generate and display CAPTCHA
-def generate_captcha_image():
-    image = ImageCaptcha(width=WIDTH, height=HEIGHT)
-    data = image.generate(st.session_state.captcha_text)
-    return data
 
 # Function to send sign-up email notification
 def send_signup_email(user_email):
@@ -97,38 +79,24 @@ def signup():
 def login():
     st.header("Login")
     
-    # Display CAPTCHA input field
-    captcha_input = st.text_input("Enter CAPTCHA", key="captcha_input")
-    
-    # Generate and display CAPTCHA image
-    captcha_image = generate_captcha_image()
-    st.image(captcha_image, caption='CAPTCHA Image')
-    
     email = st.text_input("Email", key="login_email")
     password = st.text_input("Password", type="password", key="login_password")
 
     if st.button("Login"):
-        # Verify CAPTCHA and login
-        if captcha_input == st.session_state.captcha_text:
-            st.session_state.captcha_valid = True
-            if email and password:
-                if users_collection is not None:
-                    user = users_collection.find_one({"email": email, "password": password})
-                    if user:
-                        st.session_state.logged_in = True
-                        st.session_state.email = user["email"]
-                        st.session_state.country = user.get("country", "")  # Store the country info if available
-                        st.session_state.page = 'home'  # Directly go to home page
-                    else:
-                        st.error("Invalid email or password.")
+        if email and password:
+            if users_collection is not None:
+                user = users_collection.find_one({"email": email, "password": password})
+                if user:
+                    st.session_state.logged_in = True
+                    st.session_state.email = user["email"]
+                    st.session_state.country = user.get("country", "")  # Store the country info if available
+                    st.session_state.page = 'home'  # Directly go to home page
                 else:
-                    st.error("Failed to connect to the database.")
+                    st.error("Invalid email or password.")
             else:
-                st.error("Please fill out all fields.")
+                st.error("Failed to connect to the database.")
         else:
-            st.error("CAPTCHA verification failed. Please try again.")
-            # Regenerate CAPTCHA
-            st.session_state.captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=LENGTH_CAPTCHA))
+            st.error("Please fill out all fields.")
 
 # Home function
 def home():
