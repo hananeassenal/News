@@ -70,6 +70,7 @@ def signup():
                 st.session_state.email = email
                 st.session_state.country = country
                 st.session_state.page = 'home'  # Directly go to home page
+                st.experimental_rerun()  # Rerun the script to update the state immediately
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -91,6 +92,7 @@ def login():
                     st.session_state.email = user["email"]
                     st.session_state.country = user.get("country", "")  # Store the country info if available
                     st.session_state.page = 'home'  # Directly go to home page
+                    st.experimental_rerun()  # Rerun the script to update the state immediately
                 else:
                     st.error("Invalid email or password.")
             else:
@@ -120,10 +122,12 @@ def main():
                 signup()
                 if st.button("Go to Login"):
                     st.session_state.show_signup = False
+                    st.experimental_rerun()  # Rerun the script to update the state immediately
             else:
                 login()
                 if st.button("Go to Sign Up"):
                     st.session_state.show_signup = True
+                    st.experimental_rerun()  # Rerun the script to update the state immediately
 
 if __name__ == "__main__":
     main()
