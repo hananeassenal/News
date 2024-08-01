@@ -107,7 +107,7 @@ def home():
 
 # Main function
 def main():
-    st.title("News App")
+    st.title("Home")
     init_session_state()
 
     if st.session_state.page == 'home':
