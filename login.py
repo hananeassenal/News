@@ -91,12 +91,15 @@ def login():
                     st.session_state.email = user["email"]
                     st.session_state.country = user.get("country", "")  # Store the country info if available
                     st.session_state.page = 'home'  # Directly go to home page
+                    ############################
+                    st.rerun()
+                    ############################
                 else:
                     st.error("Invalid email or password.")
             else:
                 st.error("Failed to connect to the database.")
         else:
-            st.error("Please fill out all fields.")
+            st.error("Please fill out all fields.")
 
 # Home function
 def home():
