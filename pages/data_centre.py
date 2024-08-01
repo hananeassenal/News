@@ -11,10 +11,10 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Predefined queries by country
 queries_by_country = {
-    "France": ["France data centre"],
-    "UK": ["UK data centre"],
-    "Germany": ["Germany data centre"],
-    "Ireland": ["Ireland data centre"]
+    "France": ["France new data centre"],
+    "UK": ["UK new data centre"],
+    "Germany": ["Germany new data centre"],
+    "Ireland": ["Ireland new data centre"]
 }
 
 # Function to check if user is logged in
@@ -125,14 +125,11 @@ def save_article(article):
 def main():
     check_login()  # Ensure the user is logged in
 
-    st.title("European Data Centre")
+    st.title("New Data Centre")
 
     # Ensure country is set from session state
     if 'country' not in st.session_state:
         st.session_state.country = "France"  # Default country if not set
-
-    # Debugging information
-    st.write("Session state country:", st.session_state.country)
 
     country_options = ["France", "UK", "Germany", "Ireland"]
     try:
