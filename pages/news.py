@@ -131,7 +131,17 @@ def main():
     if 'country' not in st.session_state:
         st.session_state.country = "Brazil"  # Default country if not set
 
-    country = st.selectbox("Select Country", ["Brazil", "Dubai", "Saudi", "Shanghai"], index=["Brazil", "Dubai", "Saudi", "Shanghai"].index(st.session_state.country))
+    # Get list of countries
+    countries = ["Brazil", "Dubai", "Saudi", "Shanghai"]
+
+    # Ensure the session state country is valid
+    if st.session_state.country not in countries:
+        st.session_state.country = "Brazil"
+
+    # Get the index of the default country
+    default_index = countries.index(st.session_state.country)
+
+    country = st.selectbox("Select Country", countries, index=default_index)
     st.session_state.country = country
 
     st.subheader("Search News")
