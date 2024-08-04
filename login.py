@@ -3,6 +3,12 @@ from pymongo import MongoClient, errors
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from streamlit_cookies_manager import EncryptedCookieManager
+
+# Set up cookies
+cookies = EncryptedCookieManager(prefix="news_app_", password="your_secret_key")
+if not cookies.ready():
+    st.stop()
 
 # MongoDB connection
 def connect_to_mongo():
@@ -70,6 +76,10 @@ def signup():
                 st.session_state.email = email
                 st.session_state.country = country
                 st.session_state.page = 'home'  # Directly go to home page
+                cookies.set("logged_in", "True")
+                cookies.set("email", email)
+                cookies.set("country", country)
+                st.experimental_rerun()
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -91,15 +101,16 @@ def login():
                     st.session_state.email = user["email"]
                     st.session_state.country = user.get("country", "")  # Store the country info if available
                     st.session_state.page = 'home'  # Directly go to home page
-                    ############################
-                    st.rerun()
-                    ############################
+                    cookies.set("logged_in", "True")
+                    cookies.set("email", user["email"])
+                    cookies.set("country", user.get("country", ""))
+                    st.experimental_rerun()
                 else:
                     st.error("Invalid email or password.")
             else:
                 st.error("Failed to connect to the database.")
         else:
-            st.error("Please fill out all fields.")
+            st.error("Please fill out all fields.")
 
 # Home function
 def home():
@@ -110,8 +121,16 @@ def home():
 
 # Main function
 def main():
-    st.title("News App")
+    cookies.load()
     init_session_state()
+
+    if cookies.get("logged_in") == "True":
+        st.session_state.logged_in = True
+        st.session_state.email = cookies.get("email")
+        st.session_state.country = cookies.get("country")
+        st.session_state.page = 'home'
+
+    st.title("News App")
 
     if st.session_state.page == 'home':
         home()
