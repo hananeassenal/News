@@ -46,7 +46,8 @@ def send_signup_email(user_email):
     message["From"] = sender_email
     message["To"] = receiver_email
 
-    text = f"A new user has signed up with the email: {user_email}"
+    validation_link = f"http://localhost:8501/?validate={user_email}"
+    text = f"A new user has signed up with the email: {user_email}\nPlease validate the user by clicking the link: {validation_link}"
     part = MIMEText(text, "plain")
     message.attach(part)
 
@@ -68,18 +69,11 @@ def signup():
     
     if st.button("Sign Up"):
         if email and password and country:
-            user = {"email": email, "password": password, "country": country}
+            user = {"email": email, "password": password, "country": country, "validated": False}
             if users_collection is not None:
                 users_collection.insert_one(user)
                 send_signup_email(email)  # Send email notification
-                st.session_state.logged_in = True
-                st.session_state.email = email
-                st.session_state.country = country
-                st.session_state.page = 'home'  # Directly go to home page
-                cookies.set("logged_in", "True")
-                cookies.set("email", email)
-                cookies.set("country", country)
-                st.experimental_rerun()
+                st.success("Signup successful! Please wait for validation.")
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -95,7 +89,7 @@ def login():
     if st.button("Login"):
         if email and password:
             if users_collection is not None:
-                user = users_collection.find_one({"email": email, "password": password})
+                user = users_collection.find_one({"email": email, "password": password, "validated": True})
                 if user:
                     st.session_state.logged_in = True
                     st.session_state.email = user["email"]
@@ -106,11 +100,22 @@ def login():
                     cookies.set("country", user.get("country", ""))
                     st.experimental_rerun()
                 else:
-                    st.error("Invalid email or password.")
+                    st.error("Invalid email or password, or your account has not been validated yet.")
             else:
                 st.error("Failed to connect to the database.")
         else:
             st.error("Please fill out all fields.")
+
+# Validation function
+def validate_user(email):
+    if users_collection is not None:
+        result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
+        if result.modified_count > 0:
+            st.success("User validated successfully.")
+        else:
+            st.error("Failed to validate the user. Email not found.")
+    else:
+        st.error("Failed to connect to the database.")
 
 # Home function
 def home():
@@ -124,6 +129,12 @@ def main():
     cookies.load()
     init_session_state()
 
+    # Check if validation parameter is in URL
+    query_params = st.experimental_get_query_params()
+    if "validate" in query_params:
+        email_to_validate = query_params["validate"][0]
+        validate_user(email_to_validate)
+    
     if cookies.get("logged_in") == "True":
         st.session_state.logged_in = True
         st.session_state.email = cookies.get("email")
