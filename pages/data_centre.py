@@ -121,11 +121,6 @@ def fetch_articles(query):
             # Sorting articles by date
             articles.sort(key=lambda x: x['date'], reverse=True)
 
-            # Show the 6th article first if there are at least 6 articles
-            if len(articles) >= 6:
-                sixth_article = articles.pop(5)
-                articles.insert(0, sixth_article)
-
             # Fetch summaries and display articles
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
