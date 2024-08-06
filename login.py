@@ -54,6 +54,27 @@ def send_signup_email(user_email):
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message.as_string())
 
+# Function to send validation email to the user
+def send_validation_email(user_email):
+    sender_email = "hananeassendal.info@gmail.com"
+    receiver_email = user_email
+    password = "cbjf qqlx ueon ybjv"  # App Password
+
+    message = MIMEMultipart("alternative")
+    message["Subject"] = "Account Validation Successful"
+    message["From"] = sender_email
+    message["To"] = receiver_email
+
+    text = f"Your account with email {user_email} has been validated. You can now log in to the News App."
+    part = MIMEText(text, "plain")
+    message.attach(part)
+
+    context = ssl.create_default_context()
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+        server.login(sender_email, password)
+        server.sendmail(sender_email, receiver_email, message.as_string())
+
 # Signup function
 def signup():
     st.header("Sign Up")
@@ -69,8 +90,8 @@ def signup():
             user = {"email": email, "password": password, "country": country, "validated": False}
             if users_collection is not None:
                 users_collection.insert_one(user)
-                send_signup_email(email)  # Send email notification
-                st.success("Signup successful! Please wait for validation.")
+                send_signup_email(email)  # Send email notification to admin
+                st.success("Signup successful! Please check your email for validation.")
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -105,7 +126,8 @@ def validate_user(email):
     if users_collection is not None:
         result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
         if result.modified_count > 0:
-            st.success("User validated successfully.")
+            send_validation_email(email)  # Send validation email to user
+            st.success("User validated successfully. The user has been notified via email.")
         else:
             st.error("Failed to validate the user. Email not found.")
     else:
