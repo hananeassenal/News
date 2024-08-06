@@ -126,6 +126,7 @@ def fetch_articles(query):
                 sixth_article = articles.pop(5)
                 articles.insert(0, sixth_article)
 
+            # Fetch summaries and display articles
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
