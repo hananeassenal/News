@@ -20,7 +20,10 @@ def connect_to_mongo():
 
 users_collection = connect_to_mongo()
 
+
+
 # Function to initialize session state
+@st.cache_resource
 def init_session_state():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
@@ -40,8 +43,7 @@ def send_signup_email(user_email):
     message["From"] = sender_email
     message["To"] = receiver_email
 
-    validation_link = f"http://localhost:8501/?validate={user_email}"
-    text = f"A new user has signed up with the email: {user_email}\nPlease validate the user by clicking the link: {validation_link}"
+    text = f"A new user has signed up with the email: {user_email}"
     part = MIMEText(text, "plain")
     message.attach(part)
 
@@ -63,11 +65,15 @@ def signup():
     
     if st.button("Sign Up"):
         if email and password and country:
-            user = {"email": email, "password": password, "country": country, "validated": False}
+            user = {"email": email, "password": password, "country": country}
             if users_collection is not None:
                 users_collection.insert_one(user)
                 send_signup_email(email)  # Send email notification
-                st.success("Signup successful! Please wait for validation.")
+                st.session_state.logged_in = True
+                st.session_state.email = email
+                st.session_state.country = country
+                st.session_state.page = 'home'  # Directly go to home page
+                st.rerun()
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -83,30 +89,21 @@ def login():
     if st.button("Login"):
         if email and password:
             if users_collection is not None:
-                user = users_collection.find_one({"email": email, "password": password, "validated": True})
+                user = users_collection.find_one({"email": email, "password": password})
                 if user:
                     st.session_state.logged_in = True
                     st.session_state.email = user["email"]
                     st.session_state.country = user.get("country", "")  # Store the country info if available
                     st.session_state.page = 'home'  # Directly go to home page
-                    st.experimental_rerun()
+                    ############################
+                    st.rerun()
+                    ############################
                 else:
-                    st.error("Invalid email or password, or your account has not been validated yet.")
+                    st.error("Invalid email or password.")
             else:
                 st.error("Failed to connect to the database.")
         else:
             st.error("Please fill out all fields.")
-
-# Validation function
-def validate_user(email):
-    if users_collection is not None:
-        result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
-        if result.modified_count > 0:
-            st.success("User validated successfully.")
-        else:
-            st.error("Failed to validate the user. Email not found.")
-    else:
-        st.error("Failed to connect to the database.")
 
 # Home function
 def home():
@@ -117,15 +114,8 @@ def home():
 
 # Main function
 def main():
-    init_session_state()
-
-    # Check if validation parameter is in URL
-    query_params = st.experimental_get_query_params()
-    if "validate" in query_params:
-        email_to_validate = query_params["validate"][0]
-        validate_user(email_to_validate)
-    
     st.title("News App")
+    init_session_state()
 
     if st.session_state.page == 'home':
         home()
@@ -134,13 +124,15 @@ def main():
             st.session_state.page = 'home'
         else:
             if st.session_state.show_signup:
-                signup()
+                signup() 
                 if st.button("Go to Login"):
                     st.session_state.show_signup = False
+                    st.rerun()
             else:
                 login()
                 if st.button("Go to Sign Up"):
                     st.session_state.show_signup = True
+                    st.rerun()
 
 if __name__ == "__main__":
     main()
