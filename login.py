@@ -129,13 +129,18 @@ def login():
 
 # Validation function
 def validate_user(email):
+    st.write(f"Validating user: {email}")
     if users_collection is not None:
-        result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
-        if result.modified_count > 0:
-            send_validation_email(email)  # Send validation email to user
-            st.success("User validated successfully. The user has been notified via email.")
+        user = users_collection.find_one({"email": email})
+        if user:
+            result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
+            if result.modified_count > 0:
+                send_validation_email(email)  # Send validation email to user
+                st.success("User validated successfully. The user has been notified via email.")
+            else:
+                st.error("Failed to validate the user. Email not found.")
         else:
-            st.error("Failed to validate the user. Email not found.")
+            st.error(f"Email {email} not found in the database.")
     else:
         st.error("Failed to connect to the database.")
 
