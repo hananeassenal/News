@@ -1,9 +1,9 @@
 import requests
+import json
 import streamlit as st
 from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime, timedelta
-import json
 import re
 from pymongo import MongoClient, errors
 
@@ -91,16 +91,15 @@ def fetch_articles(query):
 
     if response.status_code == 200:
         json_data = response.json()
-        st.write(json_data)  # Debugging: Print raw response
 
-        if 'articles' in json_data and json_data['articles']:
+        if 'news' in json_data and json_data['news']:
             articles = []
-            for article in json_data['articles']:
+            for article in json_data['news']:
                 title = article.get('title', '')
-                snippet = article.get('description', '')
-                date_str = article.get('publishedAt', '')
-                article_url = article.get('url', '')
-                image_url = article.get('urlToImage', '')
+                snippet = article.get('snippet', '')
+                date_str = article.get('date', '')
+                article_url = article.get('link', '')
+                image_url = article.get('imageUrl', '')
 
                 if "ago" in date_str:
                     date = parse_relative_date(date_str)
@@ -118,10 +117,11 @@ def fetch_articles(query):
                     'image_url': image_url
                 })
 
-            articles.sort(key=lambda x: x['date'], reverse=True)
-
-            if len(articles) > 5:
-                articles = articles[5:] + [articles[0]]
+            # Sorting articles: Show the 6th article first, then the rest by date
+            if len(articles) >= 6:
+                sixth_article = articles.pop(5)
+                articles.sort(key=lambda x: x['date'], reverse=True)
+                articles = [sixth_article] + articles
 
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
