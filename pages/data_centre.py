@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 import requests
 from newspaper import Article
@@ -11,13 +12,14 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Predefined queries by country
 queries_by_country = {
-    "France": ["France new data centre"],
-    "UK": ["UK new data centre"],
-    "Germany": ["Germany new data centre"],
-    "Ireland": ["Ireland new data centre"],
-    "USA": ["USA new data centre"],
-    "Brazil": ["Brazil new data centre"]
+    "France": ["France new data centre","France new data center"],
+    "UK": ["UK new data centre","UK new data center"],
+    "Germany": ["Germany new data centre","Germany new data center"],
+    "Ireland": ["Ireland new data centre","Ireland new data center"],
+    "USA": ["USA new data centre","USA new data center"],
+    "Brazil": ["Brazil new data centre","Brazil new data center"]
 }
+
 
 # Function to check if user is logged in
 def check_login():
@@ -60,6 +62,12 @@ def fetch_articles(query):
 
     response = requests.post(url, json=payload, headers=headers)
 
+    if response.status_code == 429:
+            #st.warning("Too many requests. Waiting for 1 minute before retrying...")
+            time.sleep(5)
+            response = requests.post(url, json=payload, headers=headers)
+
+
     if response.status_code == 200:
         json_data = response.json()
         if 'news' in json_data and json_data['news']:
@@ -87,8 +95,8 @@ def fetch_articles(query):
                     st.write("---")
         else:
             st.error("No articles found.")
-    else:
-        st.error(f"API request error: {response.status_code} - {response.reason}")
+    # else:
+    #     st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
     st.markdown(f"""
@@ -140,7 +148,11 @@ def main():
         country_index = 0  # Fallback to default if the country is not in the list
 
     country = st.selectbox("Select Country", country_options, index=country_index)
-    st.session_state.country = country
+    
+    # Check if the selected country is different from the session state
+    if country != st.session_state.country:
+        st.session_state.country = country
+        st.rerun()  # Trigger rerun if country is changed
 
     st.subheader("Search News")
     query = st.text_input("Enter search query")
