@@ -40,7 +40,10 @@ def send_signup_email(user_email):
     message["From"] = sender_email
     message["To"] = receiver_email
 
-    validation_link = f"http://localhost:8501/?validate={user_email}"
+    # Hardcoded URL of your deployed app
+    base_url = "https://newsapport.streamlit.app/"
+    validation_link = f"{base_url}/?validate={user_email}"
+    
     text = f"A new user has signed up with the email: {user_email}\nPlease validate the user by clicking the link: {validation_link}"
     part = MIMEText(text, "plain")
     message.attach(part)
