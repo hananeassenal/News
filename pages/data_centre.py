@@ -3,7 +3,7 @@ import streamlit as st
 import requests
 from newspaper import Article
 from llama_index.llms.groq import Groq
-from datetime import datetime, timedelta
+from datetime import datetime
 from pymongo import MongoClient, errors
 import json
 import re
@@ -14,38 +14,29 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Predefined queries by country
 queries_by_country = {
-    "France": ["France new data centre", "France new data center"],
-    "UK": ["UK new data centre", "UK new data center"],
-    "Germany": ["Germany new data centre", "Germany new data center"],
-    "Ireland": ["Ireland new data centre", "Ireland new data center"],
-    "USA": ["USA new data centre", "USA new data center"],
-    "Brazil": ["Brazil new data centre", "Brazil new data center"]
+    "France": ["France new data centre","France new data center"],
+    "UK": ["UK new data centre","UK new data center"],
+    "Germany": ["Germany new data centre","Germany new data center"],
+    "Ireland": ["Ireland new data centre","Ireland new data center"],
+    "USA": ["USA new data centre","USA new data center"],
+    "Brazil": ["Brazil new data centre","Brazil new data center"]
 }
 
-# Function to check if user is logged in
+# Country codes for Google Serper API
+country_codes = {
+    "France": "fr",
+    "Brazil": "br",
+    "USA": "us",
+    "UK": "gb",
+    "Germany": "de",
+    "Ireland": "ie"
+}
+
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         st.warning("You need to be logged in to view this page.")
         st.write("[Login](login.py)")
         st.stop()
-
-def parse_relative_date(date_str):
-    now = datetime.now()
-    if "day" in date_str:
-        days = int(re.search(r'\d+', date_str).group())
-        return now - timedelta(days=days)
-    elif "hour" in date_str:
-        hours = int(re.search(r'\d+', date_str).group())
-        return now - timedelta(hours=hours)
-    elif "minute" in date_str:
-        minutes = int(re.search(r'\d+', date_str).group())
-        return now - timedelta(minutes=minutes)
-    elif "second" in date_str:
-        seconds = int(re.search(r'\d+', date_str).group())
-        return now - timedelta(seconds=seconds)
-    else:
-        st.error(f"Unrecognized date format: {date_str}")
-        return now
 
 def fetch_summary(url):
     try:
@@ -57,18 +48,17 @@ def fetch_summary(url):
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
-
+        
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
-        st.error(f"Error fetching summary: {str(e)}")
         return f"For more please visit {url}"
 
-def fetch_articles(query):
+def fetch_articles(query, country_code):
     url = "https://google.serper.dev/search"
     payload = json.dumps({
         "q": query,
-        "gl": "us",  # Change 'gl' to match your preferred country code
-        "tbs": "qdr:w"
+        "gl": country_code,
+        "tbs": "qdr:m"
     })
     headers = {
         'X-API-KEY': '72961141ec55e220e7bfac56098cc1627f49bd9b',
@@ -89,28 +79,16 @@ def fetch_articles(query):
             articles = []
             for article in json_data['organic']:
                 title = article.get('title', '')
-                image_url = ''  # Google Serper API does not provide image URLs in the response
-                date_str = article.get('date', '')
+                snippet = article.get('snippet', '')
+                date = article.get('date', '')
                 article_url = article.get('link', '')
-
-                # Convert the date string to a datetime object
-                if date_str.lower() in ["1 day ago", "2 days ago", "3 days ago"]:  # Add more as needed
-                    date = parse_relative_date(date_str)
-                else:
-                    try:
-                        date = datetime.strptime(date_str, '%d %b %Y')
-                    except ValueError:
-                        st.error(f"Date parsing error for: {date_str}")
-                        date = datetime.now()  # Use current date if parsing fails
                 
                 articles.append({
                     'title': title,
-                    'image_url': image_url,
+                    'snippet': snippet,
                     'date': date,
                     'url': article_url
                 })
-            
-            articles.sort(key=lambda x: x['date'], reverse=True)
             
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
@@ -123,16 +101,50 @@ def fetch_articles(query):
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
+def parse_relative_date(relative_date_str):
+    # Function to parse relative dates like '1 day ago'
+    now = datetime.now()
+    if "hour" in relative_date_str:
+        hours = int(re.findall(r'\d+', relative_date_str)[0])
+        return now - timedelta(hours=hours)
+    elif "day" in relative_date_str:
+        days = int(re.findall(r'\d+', relative_date_str)[0])
+        return now - timedelta(days=days)
+    elif "month" in relative_date_str:
+        months = int(re.findall(r'\d+', relative_date_str)[0])
+        return now - timedelta(days=months * 30)
+    elif "year" in relative_date_str:
+        years = int(re.findall(r'\d+', relative_date_str)[0])
+        return now - timedelta(days=years * 365)
+    return now
+
 def display_article(article):
     button_key = f"save_{article['url']}"  # Unique key for each button
+
+    # Format date for better readability
+    if isinstance(article['date'], str):
+        if "hour" in article['date'] or "day" in article['date']:
+            try:
+                date = parse_relative_date(article['date'])
+            except Exception as e:
+                st.error(f"Date parsing error for: {article['date']}")
+                date = datetime.now()
+        else:
+            try:
+                date = datetime.strptime(article['date'], '%d %b %Y')
+            except ValueError:
+                st.error(f"Date parsing error for: {article['date']}")
+                date = datetime.now()
+    else:
+        date = datetime.now()
 
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
-        {f'<img src="{article["image_url"]}" alt="{article["title"]}" style="width:100%; height:auto;">' if article['image_url'] else ''}
-        <p>Date: {article['date'].strftime('%Y-%m-%d')}</p>
+        <p>{article['snippet']}</p>
+        <p>Date: {date.strftime('%Y-%m-%d %H:%M:%S')}</p>
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
@@ -184,12 +196,14 @@ def main():
     st.subheader("Search News")
     query = st.text_input("Enter search query")
 
+    country_code = country_codes.get(st.session_state.country, "us")  # Default to "us" if country code not found
+
     if query:
-        fetch_articles(query)
+        fetch_articles(query, country_code)
     else:
         queries = queries_by_country.get(st.session_state.country, [])
         for query in queries:
-            fetch_articles(query)
+            fetch_articles(query, country_code)
 
 if __name__ == "__main__":
     main()
