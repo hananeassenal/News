@@ -91,7 +91,9 @@ def fetch_articles(query):
 
     if response.status_code == 200:
         json_data = response.json()
-        if 'articles' in json_data:
+        st.write(json_data)  # Debugging: Print raw response
+
+        if 'articles' in json_data and json_data['articles']:
             articles = []
             for article in json_data['articles']:
                 title = article.get('title', '')
@@ -118,6 +120,9 @@ def fetch_articles(query):
 
             articles.sort(key=lambda x: x['date'], reverse=True)
 
+            if len(articles) > 5:
+                articles = articles[5:] + [articles[0]]
+
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
@@ -125,7 +130,7 @@ def fetch_articles(query):
                     display_article(article)
                     st.write("---")
         else:
-            st.error("No articles found.")
+            st.warning("No articles found.")
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
