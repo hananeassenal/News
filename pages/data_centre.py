@@ -49,7 +49,7 @@ def fetch_articles(query):
     payload = json.dumps({
         "q": query,
         "gl": "us",  # Change 'gl' to match your preferred country code
-        "tbs": "qdr:m"
+        "tbs": "qdr:w"
     })
     headers = {
         'X-API-KEY': '72961141ec55e220e7bfac56098cc1627f49bd9b',
@@ -78,6 +78,7 @@ def fetch_articles(query):
                 try:
                     date = datetime.strptime(date_str, '%d %b %Y')
                 except ValueError:
+                    st.error(f"Date parsing error for: {date_str}")
                     date = datetime.now()  # Use current date if parsing fails
                 
                 articles.append({
