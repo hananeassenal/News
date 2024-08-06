@@ -156,7 +156,7 @@ def main():
     init_session_state()
 
     # Check if validation parameter is in URL
-    query_params = st.query_params()
+    query_params = st.experimental_get_query_params()
     if "validate" in query_params:
         email_to_validate = query_params["validate"][0]
         st.write(f"Debug: Email to validate: {email_to_validate}")
