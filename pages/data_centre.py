@@ -128,19 +128,19 @@ def fetch_articles(query):
 
             articles.sort(key=lambda x: x['date'], reverse=True)
             
-            for article in articles:
+            for idx, article in enumerate(articles):
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
                     article['summary'] = summary
-                    display_article(article)
+                    display_article(article, idx)
                     st.write("---")
         else:
             st.error("No articles found.")
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
-def display_article(article):
-    button_key = f"save_{article['url']}"  # Unique key for each button
+def display_article(article, index):
+    button_key = f"save_{index}"  # Unique key for each button
 
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
