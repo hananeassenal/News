@@ -1,3 +1,26 @@
+import requests
+import json
+import streamlit as st
+from datetime import datetime
+import time
+
+def parse_relative_date(date_str):
+    # Assuming `date_str` is in a relative format like '4 days ago'
+    number, unit = date_str.split()[0], date_str.split()[1]
+    number = int(number)
+    if unit.startswith('day'):
+        delta = timedelta(days=number)
+    elif unit.startswith('hour'):
+        delta = timedelta(hours=number)
+    else:
+        delta = timedelta()  # Default to no delta
+    return datetime.now() - delta
+
+def fetch_summary(url):
+    # Placeholder function for summarizing article
+    # You should replace this with actual summarization logic
+    return "Summary of the article."
+
 def fetch_articles(query):
     country_code = {
         "France": "fr",
@@ -57,7 +80,24 @@ def fetch_articles(query):
             # Sorting all articles by date
             articles.sort(key=lambda x: x['date'], reverse=True)
 
-            for article in articles:
+            # Display the 6 most recent articles first, then display the rest
+            if len(articles) > 5:
+                recent_articles = articles[:6]
+                other_articles = articles[6:]
+            else:
+                recent_articles = articles
+                other_articles = []
+
+            # Display the 6 most recent articles
+            for article in recent_articles:
+                with st.spinner(f"Processing article: {article['title']}"):
+                    summary = fetch_summary(article['url'])
+                    article['summary'] = summary
+                    display_article(article)
+                    st.write("---")
+
+            # Display the rest of the articles
+            for article in other_articles:
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
                     article['summary'] = summary
@@ -67,3 +107,12 @@ def fetch_articles(query):
             st.warning("No articles found.")
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
+
+def display_article(article):
+    st.write(f"**Title:** {article['title']}")
+    st.write(f"**Date:** {article['date'].strftime('%Y-%m-%d %H:%M:%S')}")
+    if article['image_url']:
+        st.image(article['image_url'], use_column_width=True)
+    st.write(f"**Snippet:** {article['snippet']}")
+    st.write(f"**Summary:** {article['summary']}")
+    st.write(f"[Read more]({article['url']})")
