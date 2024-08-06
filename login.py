@@ -3,12 +3,6 @@ from pymongo import MongoClient, errors
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from streamlit_cookies_manager import EncryptedCookieManager
-
-# Set up cookies
-cookies = EncryptedCookieManager(prefix="news_app_", password="your_secret_key")
-if not cookies.ready():
-    st.stop()
 
 # MongoDB connection
 def connect_to_mongo():
@@ -95,9 +89,6 @@ def login():
                     st.session_state.email = user["email"]
                     st.session_state.country = user.get("country", "")  # Store the country info if available
                     st.session_state.page = 'home'  # Directly go to home page
-                    cookies.set("logged_in", "True")
-                    cookies.set("email", user["email"])
-                    cookies.set("country", user.get("country", ""))
                     st.experimental_rerun()
                 else:
                     st.error("Invalid email or password, or your account has not been validated yet.")
@@ -126,7 +117,6 @@ def home():
 
 # Main function
 def main():
-    cookies.load()
     init_session_state()
 
     # Check if validation parameter is in URL
@@ -135,12 +125,6 @@ def main():
         email_to_validate = query_params["validate"][0]
         validate_user(email_to_validate)
     
-    if cookies.get("logged_in") == "True":
-        st.session_state.logged_in = True
-        st.session_state.email = cookies.get("email")
-        st.session_state.country = cookies.get("country")
-        st.session_state.page = 'home'
-
     st.title("News App")
 
     if st.session_state.page == 'home':
