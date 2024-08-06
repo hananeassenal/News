@@ -58,7 +58,7 @@ def fetch_articles(query, country_code):
     payload = json.dumps({
         "q": query,
         "gl": country_code,
-        "tbs": "qdr:m"
+        "tbs": "qdr:w"
     })
     headers = {
         'X-API-KEY': '72961141ec55e220e7bfac56098cc1627f49bd9b',
