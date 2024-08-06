@@ -107,15 +107,21 @@ def login():
     if st.button("Login"):
         if email and password:
             if users_collection is not None:
-                user = users_collection.find_one({"email": email, "password": password, "validated": True})
+                user = users_collection.find_one({"email": email})
                 if user:
-                    st.session_state.logged_in = True
-                    st.session_state.email = user["email"]
-                    st.session_state.country = user.get("country", "")  # Store the country info if available
-                    st.session_state.page = 'home'  # Directly go to home page
-                    st.experimental_rerun()
+                    if user["password"] == password:
+                        if user["validated"]:
+                            st.session_state.logged_in = True
+                            st.session_state.email = user["email"]
+                            st.session_state.country = user.get("country", "")  # Store the country info if available
+                            st.session_state.page = 'home'  # Directly go to home page
+                            st.experimental_rerun()
+                        else:
+                            st.error("Your account has not been validated yet. Please check your email for validation instructions.")
+                    else:
+                        st.error("Invalid password.")
                 else:
-                    st.error("Invalid email or password, or your account has not been validated yet.")
+                    st.error("Invalid email or user not found.")
             else:
                 st.error("Failed to connect to the database.")
         else:
