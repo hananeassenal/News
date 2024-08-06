@@ -118,11 +118,13 @@ def fetch_articles(query):
                     'image_url': image_url
                 })
 
-            # Sorting articles: Show the 6th article first, then the rest by date
+            # Sorting articles by date
+            articles.sort(key=lambda x: x['date'], reverse=True)
+
+            # Show the 6th article first if there are at least 6 articles
             if len(articles) >= 6:
                 sixth_article = articles.pop(5)
-                articles.sort(key=lambda x: x['date'], reverse=True)
-                articles = [sixth_article] + articles
+                articles.insert(0, sixth_article)
 
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
