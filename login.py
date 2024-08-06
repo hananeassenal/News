@@ -65,14 +65,10 @@ def send_validation_email(user_email):
     message["From"] = sender_email
     message["To"] = receiver_email
 
-    # Hardcoded URL of your deployed app
     base_url = "https://newsapport.streamlit.app/"
-    login_link = f"{base_url}/"
-
-    text = f"""
-    Your account with email {user_email} has been validated.
-    You can now log in to the News App using the following link: {login_link}
-    """
+    login_link = f"{base_url}/login"
+    text = (f"Your account with email {user_email} has been validated. "
+            f"You can now log in to the News App using the following link: {login_link}")
     part = MIMEText(text, "plain")
     message.attach(part)
 
@@ -114,15 +110,18 @@ def login():
     if st.button("Login"):
         if email and password:
             if users_collection is not None:
-                user = users_collection.find_one({"email": email, "password": password, "validated": True})
+                user = users_collection.find_one({"email": email, "password": password})
                 if user:
-                    st.session_state.logged_in = True
-                    st.session_state.email = user["email"]
-                    st.session_state.country = user.get("country", "")  # Store the country info if available
-                    st.session_state.page = 'home'  # Directly go to home page
-                    st.experimental_rerun()
+                    if user.get("validated"):
+                        st.session_state.logged_in = True
+                        st.session_state.email = user["email"]
+                        st.session_state.country = user.get("country", "")  # Store the country info if available
+                        st.session_state.page = 'home'  # Directly go to home page
+                        st.experimental_rerun()
+                    else:
+                        st.error("Your account has not been validated yet.")
                 else:
-                    st.error("Invalid email or password, or your account has not been validated yet.")
+                    st.error("Invalid email or password.")
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -131,10 +130,15 @@ def login():
 # Validation function
 def validate_user(email):
     if users_collection is not None:
-        result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
-        if result.modified_count > 0:
-            send_validation_email(email)  # Send validation email to user
-            st.success("User validated successfully. The user has been notified via email.")
+        # Check if the user exists and update the validated field
+        user = users_collection.find_one({"email": email})
+        if user:
+            result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
+            if result.modified_count > 0:
+                send_validation_email(email)  # Send validation email to user
+                st.success("User validated successfully. The user has been notified via email.")
+            else:
+                st.error("Failed to update validation status. Email may already be validated.")
         else:
             st.error("Failed to validate the user. Email not found.")
     else:
@@ -152,9 +156,10 @@ def main():
     init_session_state()
 
     # Check if validation parameter is in URL
-    query_params = st.query_params
+    query_params = st.query_params()
     if "validate" in query_params:
-        email_to_validate = query_params["validate"]
+        email_to_validate = query_params["validate"][0]
+        st.write(f"Debug: Email to validate: {email_to_validate}")
         validate_user(email_to_validate)
     
     st.title("News App")
