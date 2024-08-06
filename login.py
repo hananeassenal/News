@@ -40,6 +40,7 @@ def send_signup_email(user_email):
     message["From"] = sender_email
     message["To"] = receiver_email
 
+    # Hardcoded URL of your deployed app
     base_url = "https://newsapport.streamlit.app/"
     validation_link = f"{base_url}/?validate={user_email}"
     
@@ -64,7 +65,14 @@ def send_validation_email(user_email):
     message["From"] = sender_email
     message["To"] = receiver_email
 
-    text = f"Your account with email {user_email} has been validated. You can now log in to the News App."
+    # Hardcoded URL of your deployed app
+    base_url = "https://newsapport.streamlit.app/"
+    login_link = f"{base_url}/"
+
+    text = f"""
+    Your account with email {user_email} has been validated.
+    You can now log in to the News App using the following link: {login_link}
+    """
     part = MIMEText(text, "plain")
     message.attach(part)
 
@@ -88,13 +96,9 @@ def signup():
         if email and password and country:
             user = {"email": email, "password": password, "country": country, "validated": False}
             if users_collection is not None:
-                try:
-                    users_collection.insert_one(user)
-                    send_signup_email(email)  # Send email notification to admin
-                    st.success("Signup successful! Please check your email for validation.")
-                    st.session_state.page = 'login'  # Redirect to login page
-                except Exception as e:
-                    st.error(f"Failed to sign up: {e}")
+                users_collection.insert_one(user)
+                send_signup_email(email)  # Send email notification to admin
+                st.success("Signup successful! Please check your email for validation.")
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -110,23 +114,15 @@ def login():
     if st.button("Login"):
         if email and password:
             if users_collection is not None:
-                try:
-                    user = users_collection.find_one({"email": email})
-                    if user:
-                        if user["password"] == password:
-                            if user["validated"]:
-                                st.session_state.logged_in = True
-                                st.session_state.email = user["email"]
-                                st.session_state.country = user.get("country", "")  # Store the country info if available
-                                st.session_state.page = 'home'  # Redirect to home page
-                            else:
-                                st.error("Your account has not been validated yet. Please check your email for validation instructions.")
-                        else:
-                            st.error("Invalid password.")
-                    else:
-                        st.error("Invalid email or user not found.")
-                except Exception as e:
-                    st.error(f"Failed to log in: {e}")
+                user = users_collection.find_one({"email": email, "password": password, "validated": True})
+                if user:
+                    st.session_state.logged_in = True
+                    st.session_state.email = user["email"]
+                    st.session_state.country = user.get("country", "")  # Store the country info if available
+                    st.session_state.page = 'home'  # Directly go to home page
+                    st.experimental_rerun()
+                else:
+                    st.error("Invalid email or password, or your account has not been validated yet.")
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -134,21 +130,13 @@ def login():
 
 # Validation function
 def validate_user(email):
-    st.write(f"Validating user: {email}")
     if users_collection is not None:
-        try:
-            user = users_collection.find_one({"email": email})
-            if user:
-                result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
-                if result.modified_count > 0:
-                    send_validation_email(email)  # Send validation email to user
-                    st.success("User validated successfully. The user has been notified via email.")
-                else:
-                    st.error("Failed to validate the user. Email not found.")
-            else:
-                st.error(f"Email {email} not found in the database.")
-        except Exception as e:
-            st.error(f"Failed to validate user: {e}")
+        result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
+        if result.modified_count > 0:
+            send_validation_email(email)  # Send validation email to user
+            st.success("User validated successfully. The user has been notified via email.")
+        else:
+            st.error("Failed to validate the user. Email not found.")
     else:
         st.error("Failed to connect to the database.")
 
@@ -164,9 +152,9 @@ def main():
     init_session_state()
 
     # Check if validation parameter is in URL
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params
     if "validate" in query_params:
-        email_to_validate = query_params["validate"][0]
+        email_to_validate = query_params["validate"]
         validate_user(email_to_validate)
     
     st.title("News App")
@@ -179,6 +167,8 @@ def main():
         else:
             if st.session_state.show_signup:
                 signup()
+                if st.button("Go to Login"):
+                    st.session_state.show_signup = False
             else:
                 login()
                 if st.button("Go to Sign Up"):
