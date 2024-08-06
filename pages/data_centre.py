@@ -13,12 +13,12 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Predefined queries by country
 queries_by_country = {
-    "France": ["France new data centre","France new data center"],
-    "UK": ["UK new data centre","UK new data center"],
-    "Germany": ["Germany new data centre","Germany new data center"],
-    "Ireland": ["Ireland new data centre","Ireland new data center"],
-    "USA": ["USA new data centre","USA new data center"],
-    "Brazil": ["Brazil new data centre","Brazil new data center"]
+    "France": ["France new data centre", "France new data center"],
+    "UK": ["UK new data centre", "UK new data center"],
+    "Germany": ["Germany new data centre", "Germany new data center"],
+    "Ireland": ["Ireland new data centre", "Ireland new data center"],
+    "USA": ["USA new data centre", "USA new data center"],
+    "Brazil": ["Brazil new data centre", "Brazil new data center"]
 }
 
 # Function to check if user is logged in
@@ -100,6 +100,8 @@ def fetch_articles(query):
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
+    button_key = f"save_{article['url']}"  # Unique key for each button
+
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
@@ -111,7 +113,7 @@ def display_article(article):
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button(f"Save Article: {article['title']}", key=article['url']):
+    if st.button(f"Save Article: {article['title']}", key=button_key):
         save_article(article)
         st.success(f"Article saved: {article['title']}")
 
