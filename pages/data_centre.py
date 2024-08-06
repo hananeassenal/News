@@ -1,12 +1,11 @@
-import time
-import streamlit as st
 import requests
+import streamlit as st
 from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime, timedelta
+import json
 import re
 from pymongo import MongoClient, errors
-import json
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -22,7 +21,6 @@ queries_by_country = {
     "Brazil": ["Brazil new data centre", "Brazil new data center"]
 }
 
-# Function to check if user is logged in
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         st.warning("You need to be logged in to view this page.")
@@ -31,15 +29,12 @@ def check_login():
 
 def parse_relative_date(relative_date_str):
     now = datetime.now()
-    
-    # Regular expressions for different relative date formats
     patterns = {
         'hour': r'(\d+) hours? ago',
         'day': r'(\d+) days? ago',
         'month': r'(\d+) months? ago',
         'year': r'(\d+) years? ago'
     }
-    
     for unit, pattern in patterns.items():
         match = re.search(pattern, relative_date_str)
         if match:
@@ -52,8 +47,6 @@ def parse_relative_date(relative_date_str):
                 return now - timedelta(days=amount * 30)
             elif unit == 'year':
                 return now - timedelta(days=amount * 365)
-    
-    # If no pattern matched, return the current date
     return now
 
 def fetch_summary(url):
@@ -62,11 +55,8 @@ def fetch_summary(url):
         article.download()
         article.parse()
         text = article.text
-
-        # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
-        
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
         return f"For more please visit {url}"
@@ -81,10 +71,10 @@ def fetch_articles(query):
         "Ireland": "ie"
     }.get(st.session_state.country, "us")
 
-    url = "https://google.serper.dev/search"
+    url = "https://google.serper.dev/news"
     payload = json.dumps({
         "q": query,
-        "gl": country_code,  # Use country-specific code
+        "gl": country_code,
         "tbs": "qdr:w"
     })
     headers = {
@@ -95,27 +85,26 @@ def fetch_articles(query):
     response = requests.post(url, headers=headers, data=payload)
 
     if response.status_code == 429:
-        # Handle rate limit error
         st.warning("Too many requests. Waiting for 1 minute before retrying...")
         time.sleep(60)
         response = requests.post(url, headers=headers, data=payload)
 
     if response.status_code == 200:
         json_data = response.json()
-        if 'organic' in json_data and json_data['organic']:
+        if 'articles' in json_data:
             articles = []
-            for article in json_data['organic']:
+            for article in json_data['articles']:
                 title = article.get('title', '')
-                snippet = article.get('snippet', '')
-                date_str = article.get('date', '')
-                article_url = article.get('link', '')
+                snippet = article.get('description', '')
+                date_str = article.get('publishedAt', '')
+                article_url = article.get('url', '')
+                image_url = article.get('urlToImage', '')
 
-                # Handle relative dates and format
                 if "ago" in date_str:
                     date = parse_relative_date(date_str)
                 else:
                     try:
-                        date = datetime.strptime(date_str, '%d %b %Y')
+                        date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S.%fZ')
                     except ValueError:
                         date = datetime.now()
 
@@ -123,32 +112,33 @@ def fetch_articles(query):
                     'title': title,
                     'snippet': snippet,
                     'date': date,
-                    'url': article_url
+                    'url': article_url,
+                    'image_url': image_url
                 })
 
             articles.sort(key=lambda x: x['date'], reverse=True)
-            
-            for idx, article in enumerate(articles):
+
+            for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
                     summary = fetch_summary(article['url'])
                     article['summary'] = summary
-                    display_article(article, idx)
+                    display_article(article)
                     st.write("---")
         else:
             st.error("No articles found.")
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
-def display_article(article, index):
-    button_key = f"save_{index}"  # Unique key for each button
-
+def display_article(article):
+    button_key = f"save_{article['url']}"
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
+        <img src="{article['image_url']}" alt="Image" style="width:100%; max-height: 300px; object-fit: cover;">
         <p>{article['snippet']}</p>
-        <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>Date: {article['date'].strftime('%Y-%m-%d')}</p>
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
@@ -176,26 +166,24 @@ def save_article(article):
     )
 
 def main():
-    check_login()  # Ensure the user is logged in
+    check_login()
 
     st.title("New Data Centre")
 
-    # Ensure country is set from session state
     if 'country' not in st.session_state:
-        st.session_state.country = "France"  # Default country if not set
+        st.session_state.country = "France"
 
     country_options = ["France", "UK", "Germany", "Ireland", "USA", "Brazil"]
     try:
         country_index = country_options.index(st.session_state.country)
     except ValueError:
-        country_index = 0  # Fallback to default if the country is not in the list
+        country_index = 0
 
     country = st.selectbox("Select Country", country_options, index=country_index)
     
-    # Check if the selected country is different from the session state
     if country != st.session_state.country:
         st.session_state.country = country
-        st.rerun()  # Trigger rerun if country is changed
+        st.rerun()
 
     st.subheader("Search News")
     query = st.text_input("Enter search query")
