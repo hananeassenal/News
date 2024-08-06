@@ -40,7 +40,6 @@ def send_signup_email(user_email):
     message["From"] = sender_email
     message["To"] = receiver_email
 
-    # Hardcoded URL of your deployed app
     base_url = "https://newsapport.streamlit.app/"
     validation_link = f"{base_url}/?validate={user_email}"
     
@@ -89,9 +88,12 @@ def signup():
         if email and password and country:
             user = {"email": email, "password": password, "country": country, "validated": False}
             if users_collection is not None:
-                users_collection.insert_one(user)
-                send_signup_email(email)  # Send email notification to admin
-                st.success("Signup successful! Please check your email for validation.")
+                try:
+                    users_collection.insert_one(user)
+                    send_signup_email(email)  # Send email notification to admin
+                    st.success("Signup successful! Please check your email for validation.")
+                except Exception as e:
+                    st.error(f"Failed to sign up: {e}")
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -107,21 +109,24 @@ def login():
     if st.button("Login"):
         if email and password:
             if users_collection is not None:
-                user = users_collection.find_one({"email": email})
-                if user:
-                    if user["password"] == password:
-                        if user["validated"]:
-                            st.session_state.logged_in = True
-                            st.session_state.email = user["email"]
-                            st.session_state.country = user.get("country", "")  # Store the country info if available
-                            st.session_state.page = 'home'  # Directly go to home page
-                            st.experimental_rerun()
+                try:
+                    user = users_collection.find_one({"email": email})
+                    if user:
+                        if user["password"] == password:
+                            if user["validated"]:
+                                st.session_state.logged_in = True
+                                st.session_state.email = user["email"]
+                                st.session_state.country = user.get("country", "")  # Store the country info if available
+                                st.session_state.page = 'home'  # Directly go to home page
+                                st.experimental_rerun()
+                            else:
+                                st.error("Your account has not been validated yet. Please check your email for validation instructions.")
                         else:
-                            st.error("Your account has not been validated yet. Please check your email for validation instructions.")
+                            st.error("Invalid password.")
                     else:
-                        st.error("Invalid password.")
-                else:
-                    st.error("Invalid email or user not found.")
+                        st.error("Invalid email or user not found.")
+                except Exception as e:
+                    st.error(f"Failed to log in: {e}")
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -131,16 +136,19 @@ def login():
 def validate_user(email):
     st.write(f"Validating user: {email}")
     if users_collection is not None:
-        user = users_collection.find_one({"email": email})
-        if user:
-            result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
-            if result.modified_count > 0:
-                send_validation_email(email)  # Send validation email to user
-                st.success("User validated successfully. The user has been notified via email.")
+        try:
+            user = users_collection.find_one({"email": email})
+            if user:
+                result = users_collection.update_one({"email": email}, {"$set": {"validated": True}})
+                if result.modified_count > 0:
+                    send_validation_email(email)  # Send validation email to user
+                    st.success("User validated successfully. The user has been notified via email.")
+                else:
+                    st.error("Failed to validate the user. Email not found.")
             else:
-                st.error("Failed to validate the user. Email not found.")
-        else:
-            st.error(f"Email {email} not found in the database.")
+                st.error(f"Email {email} not found in the database.")
+        except Exception as e:
+            st.error(f"Failed to validate user: {e}")
     else:
         st.error("Failed to connect to the database.")
 
