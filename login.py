@@ -20,10 +20,7 @@ def connect_to_mongo():
 
 users_collection = connect_to_mongo()
 
-
-
 # Function to initialize session state
-@st.cache_resource
 def init_session_state():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
@@ -73,7 +70,7 @@ def signup():
                 st.session_state.email = email
                 st.session_state.country = country
                 st.session_state.page = 'home'  # Directly go to home page
-                st.rerun()
+                st.experimental_rerun()  # Use experimental_rerun to refresh the app
             else:
                 st.error("Failed to connect to the database.")
         else:
@@ -95,9 +92,7 @@ def login():
                     st.session_state.email = user["email"]
                     st.session_state.country = user.get("country", "")  # Store the country info if available
                     st.session_state.page = 'home'  # Directly go to home page
-                    ############################
-                    st.rerun()
-                    ############################
+                    st.experimental_rerun()  # Use experimental_rerun to refresh the app
                 else:
                     st.error("Invalid email or password.")
             else:
@@ -122,17 +117,18 @@ def main():
     else:
         if st.session_state.logged_in:
             st.session_state.page = 'home'
+            st.experimental_rerun()  # Use experimental_rerun to refresh the app
         else:
             if st.session_state.show_signup:
                 signup() 
                 if st.button("Go to Login"):
                     st.session_state.show_signup = False
-                    st.rerun()
+                    st.experimental_rerun()  # Use experimental_rerun to refresh the app
             else:
                 login()
                 if st.button("Go to Sign Up"):
                     st.session_state.show_signup = True
-                    st.rerun()
+                    st.experimental_rerun()  # Use experimental_rerun to refresh the app
 
 if __name__ == "__main__":
     main()
