@@ -100,7 +100,6 @@ def fetch_articles(query):
                 snippet = article.get('snippet', '')
                 date_str = article.get('date', '')
                 article_url = article.get('link', '')
-                image_url = article.get('imageUrl', '')
 
                 if "ago" in date_str:
                     date = parse_relative_date(date_str)
@@ -114,8 +113,7 @@ def fetch_articles(query):
                     'title': title,
                     'snippet': snippet,
                     'date': date,
-                    'url': article_url,
-                    'image_url': image_url
+                    'url': article_url
                 })
 
             # Sorting articles by date
@@ -140,7 +138,6 @@ def display_article(article):
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
-        <img src="{article['image_url']}" alt="Image" style="width:100%; max-height: 400px; object-fit: cover;">
         <p>{article['snippet']}</p>
         <p>Date: {article['date'].strftime('%Y-%m-%d')}</p>
         <p>{article['summary']}</p>
