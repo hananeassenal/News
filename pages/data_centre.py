@@ -70,12 +70,12 @@ def fetch_articles(query):
             for article in json_data['organic']:
                 title = article.get('title', '')
                 image_url = ''  # Google Serper API does not provide image URLs in the response
-                date = article.get('date', '')
+                date_str = article.get('date', '')
                 article_url = article.get('link', '')
-                
-                # Convert date to a format suitable for sorting (or use a placeholder)
+
+                # Use provided date string directly
                 try:
-                    date = datetime.strptime(date, '%d %b %Y')
+                    date = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
                 except ValueError:
                     date = datetime.now()  # Use current date if parsing fails
                 
@@ -107,8 +107,8 @@ def display_article(article):
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
-        <img src="{article['image_url']}" alt="{article['title']}" style="width:100%; height:auto;">
-        <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
+        {f'<img src="{article["image_url"]}" alt="{article["title"]}" style="width:100%; height:auto;">' if article['image_url'] else ''}
+        <p>Date: {article['date'].strftime('%Y-%m-%d')}</p>
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
