@@ -92,6 +92,7 @@ def signup():
                     users_collection.insert_one(user)
                     send_signup_email(email)  # Send email notification to admin
                     st.success("Signup successful! Please check your email for validation.")
+                    st.session_state.page = 'login'  # Redirect to login page
                 except Exception as e:
                     st.error(f"Failed to sign up: {e}")
             else:
@@ -117,8 +118,7 @@ def login():
                                 st.session_state.logged_in = True
                                 st.session_state.email = user["email"]
                                 st.session_state.country = user.get("country", "")  # Store the country info if available
-                                st.session_state.page = 'home'  # Directly go to home page
-                                st.experimental_rerun()
+                                st.session_state.page = 'home'  # Redirect to home page
                             else:
                                 st.error("Your account has not been validated yet. Please check your email for validation instructions.")
                         else:
@@ -179,8 +179,6 @@ def main():
         else:
             if st.session_state.show_signup:
                 signup()
-                if st.button("Go to Login"):
-                    st.session_state.show_signup = False
             else:
                 login()
                 if st.button("Go to Sign Up"):
