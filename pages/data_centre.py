@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import re
 from pymongo import MongoClient, errors
 import time
-from collections import defaultdict
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -119,23 +118,16 @@ def fetch_articles(query):
                     'image_url': image_url
                 })
 
-            # Group articles by date
-            grouped_articles = defaultdict(list)
-            for article in articles:
-                grouped_articles[article['date'].date()].append(article)
+            # Sorting articles by date
+            articles.sort(key=lambda x: x['date'], reverse=True)
 
-            # Sort groups by date
-            sorted_dates = sorted(grouped_articles.keys(), reverse=True)
-            
-            # Display articles sorted by date
-            for date in sorted_dates:
-                st.write(f"### Articles from {date}")
-                for article in grouped_articles[date]:
-                    with st.spinner(f"Processing article: {article['title']}"):
-                        summary = fetch_summary(article['url'])
-                        article['summary'] = summary
-                        display_article(article)
-                        st.write("---")
+            # Fetch summaries and display articles
+            for article in articles:
+                with st.spinner(f"Processing article: {article['title']}"):
+                    summary = fetch_summary(article['url'])
+                    article['summary'] = summary
+                    display_article(article)
+                    st.write("---")
         else:
             st.warning("No articles found.")
     else:
