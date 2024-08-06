@@ -3,10 +3,10 @@ import streamlit as st
 import requests
 from newspaper import Article
 from llama_index.llms.groq import Groq
-from datetime import datetime
+from datetime import datetime, timedelta
+import re
 from pymongo import MongoClient, errors
 import json
-import re
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -14,29 +14,47 @@ llm = Groq(model="llama3-70b-8192", api_key=GROQ_API_KEY)
 
 # Predefined queries by country
 queries_by_country = {
-    "France": ["France new data centre","France new data center"],
-    "UK": ["UK new data centre","UK new data center"],
-    "Germany": ["Germany new data centre","Germany new data center"],
-    "Ireland": ["Ireland new data centre","Ireland new data center"],
-    "USA": ["USA new data centre","USA new data center"],
-    "Brazil": ["Brazil new data centre","Brazil new data center"]
+    "France": ["France new data centre", "France new data center"],
+    "UK": ["UK new data centre", "UK new data center"],
+    "Germany": ["Germany new data centre", "Germany new data center"],
+    "Ireland": ["Ireland new data centre", "Ireland new data center"],
+    "USA": ["USA new data centre", "USA new data center"],
+    "Brazil": ["Brazil new data centre", "Brazil new data center"]
 }
 
-# Country codes for Google Serper API
-country_codes = {
-    "France": "fr",
-    "Brazil": "br",
-    "USA": "us",
-    "UK": "gb",
-    "Germany": "de",
-    "Ireland": "ie"
-}
-
+# Function to check if user is logged in
 def check_login():
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         st.warning("You need to be logged in to view this page.")
         st.write("[Login](login.py)")
         st.stop()
+
+def parse_relative_date(relative_date_str):
+    now = datetime.now()
+    
+    # Regular expressions for different relative date formats
+    patterns = {
+        'hour': r'(\d+) hours? ago',
+        'day': r'(\d+) days? ago',
+        'month': r'(\d+) months? ago',
+        'year': r'(\d+) years? ago'
+    }
+    
+    for unit, pattern in patterns.items():
+        match = re.search(pattern, relative_date_str)
+        if match:
+            amount = int(match.group(1))
+            if unit == 'hour':
+                return now - timedelta(hours=amount)
+            elif unit == 'day':
+                return now - timedelta(days=amount)
+            elif unit == 'month':
+                return now - timedelta(days=amount * 30)
+            elif unit == 'year':
+                return now - timedelta(days=amount * 365)
+    
+    # If no pattern matched, return the current date
+    return now
 
 def fetch_summary(url):
     try:
@@ -53,11 +71,20 @@ def fetch_summary(url):
     except Exception as e:
         return f"For more please visit {url}"
 
-def fetch_articles(query, country_code):
+def fetch_articles(query):
+    country_code = {
+        "France": "fr",
+        "Brazil": "br",
+        "USA": "us",
+        "UK": "gb",
+        "Germany": "de",
+        "Ireland": "ie"
+    }.get(st.session_state.country, "us")
+
     url = "https://google.serper.dev/search"
     payload = json.dumps({
         "q": query,
-        "gl": country_code,
+        "gl": country_code,  # Use country-specific code
         "tbs": "qdr:w"
     })
     headers = {
@@ -80,15 +107,26 @@ def fetch_articles(query, country_code):
             for article in json_data['organic']:
                 title = article.get('title', '')
                 snippet = article.get('snippet', '')
-                date = article.get('date', '')
+                date_str = article.get('date', '')
                 article_url = article.get('link', '')
-                
+
+                # Handle relative dates and format
+                if "ago" in date_str:
+                    date = parse_relative_date(date_str)
+                else:
+                    try:
+                        date = datetime.strptime(date_str, '%d %b %Y')
+                    except ValueError:
+                        date = datetime.now()
+
                 articles.append({
                     'title': title,
                     'snippet': snippet,
                     'date': date,
                     'url': article_url
                 })
+
+            articles.sort(key=lambda x: x['date'], reverse=True)
             
             for article in articles:
                 with st.spinner(f"Processing article: {article['title']}"):
@@ -101,42 +139,8 @@ def fetch_articles(query, country_code):
     else:
         st.error(f"API request error: {response.status_code} - {response.reason}")
 
-def parse_relative_date(relative_date_str):
-    # Function to parse relative dates like '1 day ago'
-    now = datetime.now()
-    if "hour" in relative_date_str:
-        hours = int(re.findall(r'\d+', relative_date_str)[0])
-        return now - timedelta(hours=hours)
-    elif "day" in relative_date_str:
-        days = int(re.findall(r'\d+', relative_date_str)[0])
-        return now - timedelta(days=days)
-    elif "month" in relative_date_str:
-        months = int(re.findall(r'\d+', relative_date_str)[0])
-        return now - timedelta(days=months * 30)
-    elif "year" in relative_date_str:
-        years = int(re.findall(r'\d+', relative_date_str)[0])
-        return now - timedelta(days=years * 365)
-    return now
-
 def display_article(article):
     button_key = f"save_{article['url']}"  # Unique key for each button
-
-    # Format date for better readability
-    if isinstance(article['date'], str):
-        if "hour" in article['date'] or "day" in article['date']:
-            try:
-                date = parse_relative_date(article['date'])
-            except Exception as e:
-                st.error(f"Date parsing error for: {article['date']}")
-                date = datetime.now()
-        else:
-            try:
-                date = datetime.strptime(article['date'], '%d %b %Y')
-            except ValueError:
-                st.error(f"Date parsing error for: {article['date']}")
-                date = datetime.now()
-    else:
-        date = datetime.now()
 
     st.markdown(f"""
     <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
@@ -144,7 +148,7 @@ def display_article(article):
             <h3>{article['title']}</h3>
         </a>
         <p>{article['snippet']}</p>
-        <p>Date: {date.strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>Date: {article['date'].strftime('%Y-%m-%d %H:%M:%S')}</p>
         <p>{article['summary']}</p>
     </div>
     """, unsafe_allow_html=True)
@@ -196,14 +200,12 @@ def main():
     st.subheader("Search News")
     query = st.text_input("Enter search query")
 
-    country_code = country_codes.get(st.session_state.country, "us")  # Default to "us" if country code not found
-
     if query:
-        fetch_articles(query, country_code)
+        fetch_articles(query)
     else:
         queries = queries_by_country.get(st.session_state.country, [])
         for query in queries:
-            fetch_articles(query, country_code)
+            fetch_articles(query)
 
 if __name__ == "__main__":
     main()
