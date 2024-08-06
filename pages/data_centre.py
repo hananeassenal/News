@@ -38,9 +38,10 @@ def fetch_summary(url):
         # Use Groq model for summarization
         prompt = f"Summarize the following text:\n\n{text}"
         summary = llm.complete(prompt)
-        
+
         return f"{summary}\n\nFor more please visit {url}"
     except Exception as e:
+        st.error(f"Error fetching summary: {str(e)}")
         return f"For more please visit {url}"
 
 def fetch_articles(query):
@@ -73,9 +74,9 @@ def fetch_articles(query):
                 date_str = article.get('date', '')
                 article_url = article.get('link', '')
 
-                # Use provided date string directly
+                # Convert the date string to a datetime object
                 try:
-                    date = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+                    date = datetime.strptime(date_str, '%d %b %Y')
                 except ValueError:
                     date = datetime.now()  # Use current date if parsing fails
                 
