@@ -5,6 +5,7 @@ from newspaper import Article
 from llama_index.llms.groq import Groq
 from datetime import datetime
 from pymongo import MongoClient, errors
+import json
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -19,7 +20,6 @@ queries_by_country = {
     "USA": ["USA new data centre","USA new data center"],
     "Brazil": ["Brazil new data centre","Brazil new data center"]
 }
-
 
 # Function to check if user is logged in
 def check_login():
@@ -44,44 +44,45 @@ def fetch_summary(url):
         return f"For more please visit {url}"
 
 def fetch_articles(query):
-    url = "https://newsnow.p.rapidapi.com/newsv2"
-    payload = {
-        "query": query,
-        "time_bounded": True,
-        "from_date": "01/01/2023",
-        "to_date": "30/12/2024",
-        "location": "us",
-        "language": "en",
-        "page": 1
-    }
+    url = "https://google.serper.dev/search"
+    payload = json.dumps({
+        "q": query,
+        "gl": "us",  # Change 'gl' to match your preferred country code
+        "tbs": "qdr:m"
+    })
     headers = {
-        "x-rapidapi-key": "3f0b7a04abmshe28889e523915e1p12b5dcjsn4014e40913e8",
-        "x-rapidapi-host": "newsnow.p.rapidapi.com",
-        "Content-Type": "application/json"
+        'X-API-KEY': '72961141ec55e220e7bfac56098cc1627f49bd9b',
+        'Content-Type': 'application/json'
     }
 
-    response = requests.post(url, json=payload, headers=headers)
+    response = requests.post(url, headers=headers, data=payload)
 
     if response.status_code == 429:
-            #st.warning("Too many requests. Waiting for 1 minute before retrying...")
-            time.sleep(5)
-            response = requests.post(url, json=payload, headers=headers)
-
+        # Handle rate limit error
+        st.warning("Too many requests. Waiting for 1 minute before retrying...")
+        time.sleep(60)
+        response = requests.post(url, headers=headers, data=payload)
 
     if response.status_code == 200:
         json_data = response.json()
-        if 'news' in json_data and json_data['news']:
+        if 'organic' in json_data and json_data['organic']:
             articles = []
-            for article in json_data['news']:
+            for article in json_data['organic']:
                 title = article.get('title', '')
-                image_url = article.get('top_image', '')
+                image_url = ''  # Google Serper API does not provide image URLs in the response
                 date = article.get('date', '')
-                article_url = article.get('url', '')
+                article_url = article.get('link', '')
+                
+                # Convert date to a format suitable for sorting (or use a placeholder)
+                try:
+                    date = datetime.strptime(date, '%d %b %Y')
+                except ValueError:
+                    date = datetime.now()  # Use current date if parsing fails
                 
                 articles.append({
                     'title': title,
                     'image_url': image_url,
-                    'date': datetime.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'),
+                    'date': date,
                     'url': article_url
                 })
             
@@ -95,8 +96,8 @@ def fetch_articles(query):
                     st.write("---")
         else:
             st.error("No articles found.")
-    # else:
-    #     st.error(f"API request error: {response.status_code} - {response.reason}")
+    else:
+        st.error(f"API request error: {response.status_code} - {response.reason}")
 
 def display_article(article):
     st.markdown(f"""
