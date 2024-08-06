@@ -3,9 +3,10 @@ import streamlit as st
 import requests
 from newspaper import Article
 from llama_index.llms.groq import Groq
-from datetime import datetime
+from datetime import datetime, timedelta
 from pymongo import MongoClient, errors
 import json
+import re
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -27,6 +28,24 @@ def check_login():
         st.warning("You need to be logged in to view this page.")
         st.write("[Login](login.py)")
         st.stop()
+
+def parse_relative_date(date_str):
+    now = datetime.now()
+    if "day" in date_str:
+        days = int(re.search(r'\d+', date_str).group())
+        return now - timedelta(days=days)
+    elif "hour" in date_str:
+        hours = int(re.search(r'\d+', date_str).group())
+        return now - timedelta(hours=hours)
+    elif "minute" in date_str:
+        minutes = int(re.search(r'\d+', date_str).group())
+        return now - timedelta(minutes=minutes)
+    elif "second" in date_str:
+        seconds = int(re.search(r'\d+', date_str).group())
+        return now - timedelta(seconds=seconds)
+    else:
+        st.error(f"Unrecognized date format: {date_str}")
+        return now
 
 def fetch_summary(url):
     try:
@@ -75,11 +94,14 @@ def fetch_articles(query):
                 article_url = article.get('link', '')
 
                 # Convert the date string to a datetime object
-                try:
-                    date = datetime.strptime(date_str, '%d %b %Y')
-                except ValueError:
-                    st.error(f"Date parsing error for: {date_str}")
-                    date = datetime.now()  # Use current date if parsing fails
+                if date_str.lower() in ["1 day ago", "2 days ago", "3 days ago"]:  # Add more as needed
+                    date = parse_relative_date(date_str)
+                else:
+                    try:
+                        date = datetime.strptime(date_str, '%d %b %Y')
+                    except ValueError:
+                        st.error(f"Date parsing error for: {date_str}")
+                        date = datetime.now()  # Use current date if parsing fails
                 
                 articles.append({
                     'title': title,
