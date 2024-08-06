@@ -141,7 +141,7 @@ def display_article(article):
         <a href="{article['url']}" target="_blank" style="text-decoration: none; color: inherit;">
             <h3>{article['title']}</h3>
         </a>
-        <img src="{article['image_url']}" alt="Image" style="width:100%; max-height: 300px; object-fit: cover;">
+        <img src="{article['image_url']}" alt="Image" style="width:100%; max-height: 400px; object-fit: cover;">
         <p>{article['snippet']}</p>
         <p>Date: {article['date'].strftime('%Y-%m-%d')}</p>
         <p>{article['summary']}</p>
