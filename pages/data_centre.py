@@ -7,7 +7,12 @@ from datetime import datetime, timedelta
 import re
 from pymongo import MongoClient, errors
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Groq API Key
 GROQ_API_KEY = "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"
@@ -122,14 +127,18 @@ def fetch_articles(query):
             articles.sort(key=lambda x: x['date'], reverse=True)
 
             # Fetch summaries in parallel and display articles
-            with ThreadPoolExecutor() as executor:
-                futures = [executor.submit(fetch_summary, article['url']) for article in articles]
-                for future, article in zip(futures, articles):
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {executor.submit(fetch_summary, article['url']): article for article in articles}
+                for future in as_completed(futures):
+                    article = futures[future]
                     with st.spinner(f"Processing article: {article['title']}"):
-                        summary = future.result()
-                        article['summary'] = summary
-                        display_article(article)
-                        st.write("---")
+                        try:
+                            summary = future.result()
+                            article['summary'] = summary
+                            display_article(article)
+                            st.write("---")
+                        except Exception as exc:
+                            logger.error(f"Generated an exception: {exc}")
         else:
             st.warning("No articles found.")
     else:
