@@ -82,7 +82,7 @@ def fetch_articles(query):
     payload = json.dumps({
         "q": query,
         "gl": country_code,
-        "num": 20,
+        "num": 30,
         "tbs": "qdr:w"
     })
     headers = {
